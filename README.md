@@ -1,32 +1,59 @@
-# React + TypeScript + Vite
+# BaseSaber 🛡️
+**Plataforma RAG (Retrieval-Augmented Generation) Corporativa 100% Local**
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+BaseSaber es un sistema de gestión documental impulsado por Inteligencia Artificial diseñado para PYMEs. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs) íntegramente en hardware local, asegurando la máxima privacidad y cumplimiento corporativo.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Características Principales (Frontend - Hito 1)
 
-## React Compiler
+*   **Arquitectura SPA Fluida:** Construida con React y enrutamiento dinámico para una experiencia de usuario sin interrupciones.
+*   **Control de Acceso Basado en Roles (RBAC):**
+    *   *Perfil Empleado:* Acceso exclusivo al chat interactivo para consultas operativas.
+    *   *Perfil Administrador:* Acceso global, incluyendo el panel de gestión y subida de documentos.
+*   **Chat Corporativo Interactivo (Tipo Gemini):**
+    *   Simulación de streaming de respuestas (efecto máquina de escribir).
+    *   Trazabilidad de datos mediante insignias (badges) interactivas que muestran las fuentes documentales exactas citadas por la IA.
+    *   Sistema de recolección de feedback (Pulgar arriba/abajo) para métricas de calidad.
+*   **Gestión Documental Segura (AdminView):**
+    *   Zona de Drag & Drop nativa para indexación de archivos.
+    *   **Pre-filtrado por Metadatos:** Asignación de "Niveles de Acceso" (General, Jefatura, Gerencia) en el momento de la subida para garantizar una arquitectura *Zero Trust*.
+*   **Estándares de Industria:** Diseño corporativo estrictamente alineado con directrices de accesibilidad **WCAG 2.2** y principios de seguridad frontend **OWASP**.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🛠️ Stack Tecnológico
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### Frontend (Fase Actual)
+*   **Framework:** React (TypeScript) + Vite
+*   **Enrutamiento:** React Router DOM
+*   **Estilos:** Tailwind CSS v4
+*   **Componentes UI:** shadcn/ui + lucide-react
+*   **Persistencia (Prototipo):** LocalStorage API
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+### Backend & Datos (Fase Próxima - Hito 2)
+*   **API REST:** FastAPI (Python)
+*   **Base de Datos Relacional y Vectorial:** PostgreSQL + extensión `pgvector`
+*   **Motor RAG:** Arquitectura multicapa (Clean Architecture) con filtrado previo en base de datos.
+*   **Motor IA Local:** `llama.cpp` ejecutando modelos cuantizados (Llama 3 8B / Gemma) optimizados para GPU (8GB VRAM).
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## ⚙️ Instalación y Configuración (Desarrollo)
+
+Asegúrate de tener instalado [Node.js](https://nodejs.org/) (versión 18 o superior).
+
+1. **Clonar el repositorio y acceder a la carpeta:**
+   ```bash
+   git clone <url-del-repositorio>
+   cd basesaber-app
+Instalar las dependencias:
+
+Bash
+npm install
+Ejecutar el servidor de desarrollo:
+
+Bash
+npm run dev
+Acceder a la aplicación:
+Abre tu navegador y dirígete a http://localhost:5173
