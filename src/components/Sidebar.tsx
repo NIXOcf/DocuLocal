@@ -53,7 +53,7 @@ function Sidebar({ id, className, ref, onNavigate }: SidebarProps) {
             <BrainCircuit className="size-5 text-slate-100" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="font-semibold leading-tight">BaseSaber</p>
+            <p className="font-semibold leading-tight">DocuLocal</p>
             <p className="truncate text-xs text-slate-300">
               Gestión documental inteligente
             </p>

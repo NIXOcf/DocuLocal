@@ -25,7 +25,7 @@ const WELCOME_MESSAGE: Message = {
   id: "welcome",
   role: "assistant",
   content:
-    "Hola, soy el asistente de BaseSaber. Puedo responder preguntas sobre las políticas, procedimientos y contratos de la organización a partir de los documentos indexados. ¿En qué puedo ayudarte?",
+    "Hola, soy el asistente de DocuLocal. Puedo responder preguntas sobre las políticas, procedimientos y contratos de la organización a partir de los documentos indexados. ¿En qué puedo ayudarte?",
   createdAt: 0,
 }
 
@@ -143,7 +143,7 @@ function ChatView() {
     <div className="flex h-full flex-col">
       <header className="flex h-14 shrink-0 items-center border-b border-slate-200 bg-white px-6">
         <h1 className="text-sm font-semibold text-slate-900">
-          Asistente BaseSaber
+          Asistente DocuLocal
         </h1>
       </header>
 

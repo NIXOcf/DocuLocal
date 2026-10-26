@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils"
 type Section = "chat" | "admin"
 
 const SECTION_TITLES: Record<Section, string> = {
-  chat: "Chat · BaseSaber",
-  admin: "Administración · BaseSaber",
+  chat: "Chat · DocuLocal",
+  admin: "Administración · DocuLocal",
 }
 
 const DESKTOP_QUERY = "(min-width: 768px)"
@@ -116,7 +116,7 @@ function AppLayout() {
             <Menu className="size-5" aria-hidden="true" />
           )}
         </button>
-        <span className="font-semibold">BaseSaber</span>
+        <span className="font-semibold">DocuLocal</span>
       </div>
 
       {menuOpen && (

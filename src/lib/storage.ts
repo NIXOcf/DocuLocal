@@ -12,7 +12,7 @@
  * se descarta y se usa el valor por defecto.
  */
 
-const PREFIX = "basesaber:v2:"
+const PREFIX = "doculocal:v2:"
 
 export const STORAGE_KEYS = {
   session: "session",

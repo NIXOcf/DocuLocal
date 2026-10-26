@@ -12,7 +12,7 @@ function LoginView() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
 
-  useDocumentTitle("Iniciar sesión · BaseSaber")
+  useDocumentTitle("Iniciar sesión · DocuLocal")
 
   if (isAuthenticated) {
     return <Navigate to="/chat" replace />
@@ -32,7 +32,7 @@ function LoginView() {
               <BrainCircuit className="size-6 text-white" aria-hidden="true" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">BaseSaber</h1>
+              <h1 className="text-xl font-semibold text-slate-900">DocuLocal</h1>
               <p className="text-sm text-slate-600">
                 Gestión documental inteligente
               </p>
