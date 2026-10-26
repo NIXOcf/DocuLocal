@@ -1,40 +1,44 @@
-import { useState } from "react"
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import AdminView from "@/components/AdminView"
+import AppLayout from "@/components/AppLayout"
 import ChatView from "@/components/ChatView"
-import Sidebar from "@/components/Sidebar"
-import type { View } from "@/types"
+import LoginView from "@/components/LoginView"
+import ProtectedRoute from "@/components/routing/ProtectedRoute"
+import RoleRoute from "@/components/routing/RoleRoute"
+import AuthProvider from "@/context/AuthProvider"
+import ChatProvider from "@/context/ChatProvider"
+import DocumentsProvider from "@/context/DocumentsProvider"
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>("chat")
-  const [activeChatId, setActiveChatId] = useState<string | null>(null)
-
-  const handleSelectChat = (id: string) => {
-    setActiveChatId(id)
-    setCurrentView("chat")
-  }
-
-  const handleNewChat = () => {
-    setActiveChatId(null)
-    setCurrentView("chat")
-  }
-
   return (
-    <div className="h-screen flex overflow-hidden">
-      <Sidebar
-        currentView={currentView}
-        onChangeView={setCurrentView}
-        activeChatId={activeChatId}
-        onSelectChat={handleSelectChat}
-        onNewChat={handleNewChat}
-      />
-      <main className="flex-1 min-w-0 bg-slate-50">
-        {currentView === "chat" ? (
-          <ChatView key={activeChatId ?? "new"} />
-        ) : (
-          <AdminView />
-        )}
-      </main>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <DocumentsProvider>
+          <ChatProvider>
+            <Routes>
+              <Route path="/" element={<Navigate to="/chat" replace />} />
+              <Route path="/login" element={<LoginView />} />
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  {/* Una sola ruta con segmento opcional: ChatView no se remonta al
+                      pasar de /chat a /chat/:chatId y el input conserva el foco. */}
+                  <Route path="/chat/:chatId?" element={<ChatView />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <RoleRoute requiredRole="admin">
+                        <AdminView />
+                      </RoleRoute>
+                    }
+                  />
+                </Route>
+              </Route>
+              <Route path="*" element={<Navigate to="/chat" replace />} />
+            </Routes>
+          </ChatProvider>
+        </DocumentsProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 
