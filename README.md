@@ -1,7 +1,7 @@
-# BaseSaber 🛡️
+# DocuLocal 🛡️
 **Plataforma RAG (Retrieval-Augmented Generation) Corporativa 100% Local**
 
-BaseSaber es un sistema de gestión documental impulsado por Inteligencia Artificial diseñado para PYMEs. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs) íntegramente en hardware local, asegurando la máxima privacidad y cumplimiento corporativo.
+DocuLocal es un sistema de gestión documental impulsado por Inteligencia Artificial diseñado para PYMEs. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs) íntegramente en hardware local, asegurando la máxima privacidad y cumplimiento corporativo.
 
 ---
 
@@ -45,8 +45,8 @@ Asegúrate de tener instalado [Node.js](https://nodejs.org/) (versión 18 o supe
 
 1. **Clonar el repositorio y acceder a la carpeta:**
    ```bash
-   git clone <url-del-repositorio>
-   cd basesaber-app
+   git clone https://github.com/NIXOcf/DocuLocal
+   cd doculocal-app
 Instalar las dependencias:
 
 Bash
