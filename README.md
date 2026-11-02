@@ -1,7 +1,7 @@
 # DocuLocal 🛡️
 **Plataforma RAG (Retrieval-Augmented Generation) Corporativa 100% Local**
 
-DocuLocal es un sistema de gestión documental impulsado por Inteligencia Artificial diseñado para PYMEs. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs) íntegramente en hardware local, asegurando la máxima privacidad y cumplimiento corporativo.
+DocuLocal es un sistema de gestión documental impulsado por Inteligencia Artificial. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs), asegurando la máxima privacidad y cumplimiento corporativo.
 
 ---
 
