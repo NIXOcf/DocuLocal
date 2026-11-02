@@ -57,3 +57,29 @@ Bash
 npm run dev
 Acceder a la aplicación:
 Abre tu navegador y dirígete a http://localhost:5173
+
+## Declaración de uso de IA generativa
+
+Este proyecto **utilizó Inteligencia Artificial Generativa (IAG) en su desarrollo y en su documentación**. La IAG se empleó como herramienta de apoyo; los requisitos, el alcance, la identidad visual y los criterios de aceptación fueron definidos por el/los autor(es), quien(es) asume(n) la responsabilidad final del contenido.
+
+### Herramientas utilizadas
+
+| Herramienta | Uso |
+|---|---|
+| Claude (Anthropic) | Arquitectura, redacción de prompts, análisis de auditorías, decisiones técnicas y documentación |
+| Claude Code (Anthropic) | Generación y modificación de código, configuración de dependencias, verificación (tipos, build, lint) y evolución a v2 |
+| Cline + modelo local | Intento inicial de construcción y auditoría de código |
+
+### Alcance
+
+- **Código:** estructura del proyecto, componentes (`Sidebar`, `ChatView`, `AdminView`, login, diálogo de citas), enrutamiento, roles simulados, persistencia local, simulación de streaming, feedback y aplicación de directrices OWASP/WCAG.
+- **Documentación:** plan de arquitectura, justificación de decisiones técnicas, informe de cumplimiento y la declaración completa de uso de IAG.
+
+### Limitaciones
+
+- El código generado por IA puede contener errores; se verificó mediante compilación, lint y pruebas manuales, **sin una auditoría formal**.
+- El cumplimiento de OWASP y WCAG 2.2 es una directriz de desarrollo, **no una certificación**.
+- El control de roles (RBAC) es **simulado en el cliente** y no es una medida de seguridad real. En producción debe aplicarse en el backend.
+- Todos los datos son ficticios y no se compartieron credenciales ni información confidencial con las herramientas de IA.
+
+📄 La declaración completa está en [`docs/DECLARACION_IA.pdf`](docs/DECLARACION_IA.pdf).
