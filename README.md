@@ -82,4 +82,4 @@ Este proyecto **utilizó Inteligencia Artificial Generativa (IAG) en su desarrol
 - El control de roles (RBAC) es **simulado en el cliente** y no es una medida de seguridad real. En producción debe aplicarse en el backend.
 - Todos los datos son ficticios y no se compartieron credenciales ni información confidencial con las herramientas de IA.
 
-📄 La declaración completa está en [`docs/DECLARACION_IA.pdf`](docs/DECLARACION_IA.pdf).
+📄 La declaración completa está en [`docs/Docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](Docs/Declaración_de_uso_de_Inteligencia_Artificial_Generativa.pdf).
