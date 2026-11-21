@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,11 +30,26 @@ class Settings(BaseSettings):
     rerank_min_score: float = -1.3
     retrieval_top_k: int = 8
 
+    # Clave del proveedor LLM (se llama GROQ_API_KEY por compatibilidad); en modo local puede ir vacía.
     groq_api_key: str = ""
     llm_base_url: str = "https://api.groq.com/openai/v1"
     llm_model: str = "openai/gpt-oss-120b"
     llm_fast_model: str = "openai/gpt-oss-20b"
+    # Detector de inyección; vacío = desactivado (solo existe en Groq)
     llm_guard_model: str = "meta-llama/llama-prompt-guard-2-86m"
+    llm_timeout_seconds: int = 30
+    llm_max_retries: int = 2
+
+    log_level: str = "INFO"
+    log_dir: str = "backend/logs"
+
+    @property
+    def llm_is_local(self) -> bool:
+        return urlparse(self.llm_base_url).hostname in ("localhost", "127.0.0.1", "::1")
+
+    @property
+    def llm_mode(self) -> str:
+        return "local" if self.llm_is_local else "groq"
 
     @property
     def database_dsn(self) -> str:
@@ -49,6 +65,11 @@ class Settings(BaseSettings):
     @property
     def storage_path(self) -> Path:
         path = Path(self.storage_dir)
+        return path if path.is_absolute() else ROOT_DIR / path
+
+    @property
+    def log_path(self) -> Path:
+        path = Path(self.log_dir)
         return path if path.is_absolute() else ROOT_DIR / path
 
 
