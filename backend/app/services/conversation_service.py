@@ -54,7 +54,7 @@ def create_conversation(user: dict, title: str | None) -> ConversationOut:
 
 def get_conversation(user: dict, conversation_id: str) -> ConversationDetailOut:
     row = _owned(user, conversation_id)
-    messages = message_repository.list_by_conversation(conversation_id)
+    messages = message_repository.list_by_conversation(conversation_id, user["access_level"], user["department"])
     return ConversationDetailOut(**to_conversation_out(row).model_dump(),
                                  messages=[to_message_out(m) for m in messages])
 
@@ -71,7 +71,8 @@ def delete_conversation(user: dict, conversation_id: str) -> None:
 
 def list_messages(user: dict, conversation_id: str) -> list[MessageOut]:
     _owned(user, conversation_id)
-    return [to_message_out(m) for m in message_repository.list_by_conversation(conversation_id)]
+    messages = message_repository.list_by_conversation(conversation_id, user["access_level"], user["department"])
+    return [to_message_out(m) for m in messages]
 
 
 def post_message(user: dict, conversation_id: str, content: str) -> AnswerOut:
@@ -95,4 +96,5 @@ def set_feedback(user: dict, conversation_id: str, message_id: str, feedback: st
         raise NotFound("El mensaje no existe.", "mensaje_no_encontrado")
     if msg["role"] != "assistant":
         raise Unprocessable("Solo se puede valorar una respuesta del asistente.", "feedback_no_permitido")
-    return to_message_out(message_repository.set_feedback(message_id, feedback))
+    updated = message_repository.set_feedback(message_id, feedback, user["access_level"], user["department"])
+    return to_message_out(updated)

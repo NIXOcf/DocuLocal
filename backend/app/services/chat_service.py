@@ -70,7 +70,7 @@ def _compose(question: str, history: list[dict], user: dict,
 def answer(user: dict, conversation_id: str, question: str) -> dict:
     started = time.perf_counter()
     user_id = str(user["id"])
-    history = message_repository.recent(conversation_id, HISTORY_WINDOW)
+    history = message_repository.recent(conversation_id, HISTORY_WINDOW, user["access_level"], user["department"])
     first_question = not history
     user_msg = message_repository.insert(conversation_id, "user", question)
 
@@ -94,7 +94,7 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
          "page": c.page, "score": c.score, "snippet": _snippet(c.content)}
         for i, c in enumerate(sources, start=1)
     ])
-    assistant["sources"] = message_repository.get_sources(str(assistant["id"]))
+    assistant["sources"] = message_repository.get_sources(str(assistant["id"]), user["access_level"], user["department"])
     conversation_repository.touch(conversation_id, question[:TITLE_CHARS] if first_question else None)
 
     ms = round((time.perf_counter() - started) * 1000)
