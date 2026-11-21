@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.core.deps import CurrentUser
 from app.schemas.user import LoginIn, LoginOut, UserOut
@@ -9,8 +9,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=LoginOut)
-def login(body: LoginIn):
-    return auth_service.login(body.email, body.password)
+def login(body: LoginIn, request: Request):
+    return auth_service.login(body.email, body.password, request.client.host if request.client else None)
 
 
 @router.get("/me", response_model=UserOut, response_model_by_alias=True)

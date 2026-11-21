@@ -1,14 +1,17 @@
 from datetime import datetime
 
-from app.core.errors import Conflict, NotFound, Unprocessable
+from app.core.errors import Conflict, NotFound, TooManyRequests, Unprocessable
 from app.repositories import conversation_repository, message_repository
 from app.schemas.common import make_page
 from app.schemas.conversation import (AnswerOut, ConversationDetailOut, ConversationOut, MessageOut,
                                       SourceOut)
 from app.services import chat_service
+from app.services.rate_limiter import SlidingWindowLimiter
 
 MAX_CONVERSATIONS = 50
 MAX_MESSAGES = 100
+ASK_MAX_PER_MINUTE = 10
+ask_limiter = SlidingWindowLimiter(ASK_MAX_PER_MINUTE, 60)  # por usuario
 
 
 def _ms(dt: datetime) -> int:
@@ -73,6 +76,10 @@ def list_messages(user: dict, conversation_id: str) -> list[MessageOut]:
 
 def post_message(user: dict, conversation_id: str, content: str) -> AnswerOut:
     _owned(user, conversation_id)
+    wait = ask_limiter.consume(str(user["id"]))
+    if wait:
+        raise TooManyRequests("Estás haciendo demasiadas preguntas. Espera un momento.", "demasiadas_consultas",
+                              headers={"Retry-After": str(wait)})
     if message_repository.count(conversation_id) + 2 > MAX_MESSAGES:
         raise Conflict(f"La conversación alcanzó el máximo de {MAX_MESSAGES} mensajes. Inicia una nueva.",
                        "limite_mensajes")
