@@ -4,6 +4,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.errors import Forbidden, Unauthorized
+from app.core.logging import set_user_id
 from app.core.security import decode_access_token
 from app.repositories import user_repository
 
@@ -17,6 +18,7 @@ def get_current_user(creds: Annotated[HTTPAuthorizationCredentials | None, Depen
     user = user_repository.get_by_id(claims["sub"])
     if user is None or not user["is_active"]:
         raise Unauthorized("Sesión inválida o expirada.", "token_invalido")
+    set_user_id(str(user["id"]))
     return user
 
 

@@ -1,3 +1,4 @@
+import logging
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -8,6 +9,7 @@ from psycopg_pool import ConnectionPool
 
 from app.core.config import get_settings
 
+logger = logging.getLogger("doculocal.bd")
 _pool: ConnectionPool | None = None
 
 
@@ -25,7 +27,15 @@ def open_pool() -> None:
         configure=_configure,
         open=False,
     )
-    _pool.open(wait=True, timeout=10)
+    try:
+        _pool.open(wait=True, timeout=10)
+    except Exception as exc:
+        s = get_settings()
+        logger.error("No se pudo conectar a PostgreSQL en %s:%s (%s): ¿Docker apagado? Ejecuta "
+                     "'docker compose up -d db' y revisa POSTGRES_PORT en .env", s.postgres_host, s.postgres_port,
+                     type(exc).__name__)
+        raise
+    logger.info("Pool de conexiones abierto")
 
 
 def close_pool() -> None:

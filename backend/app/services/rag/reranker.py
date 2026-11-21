@@ -1,10 +1,13 @@
 """Re-ranking local con cross-encoder multilingüe (fastembed/ONNX). Se carga en el primer uso."""
+import logging
 import threading
+import time
 
 from fastembed.rerank.cross_encoder import TextCrossEncoder
 
 from app.core.config import get_settings
 
+logger = logging.getLogger("doculocal.reranker")
 _model: TextCrossEncoder | None = None
 _lock = threading.Lock()
 
@@ -13,7 +16,14 @@ def _get_model() -> TextCrossEncoder:
     global _model
     with _lock:
         if _model is None:
-            _model = TextCrossEncoder(get_settings().rerank_model)
+            name, started = get_settings().rerank_model, time.perf_counter()
+            try:
+                _model = TextCrossEncoder(name)
+            except Exception as exc:
+                logger.error("No se pudo cargar el modelo reranker %s (%s): la primera vez se descarga; "
+                             "revisa internet y el espacio en disco", name, type(exc).__name__)
+                raise
+            logger.info("Modelo reranker cargado modelo=%s ms=%d", name, round((time.perf_counter() - started) * 1000))
         return _model
 
 

@@ -2,7 +2,7 @@ import logging
 
 from app.repositories import audit_repository
 
-logger = logging.getLogger("doculocal")
+logger = logging.getLogger("doculocal.auditoria")
 
 
 def record(user_id: str | None, action: str, resource: str, resource_id: str | None = None, **detail) -> None:

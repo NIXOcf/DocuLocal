@@ -1,7 +1,6 @@
 """Cliente LLM sobre la API compatible con OpenAI (Groq). Cambiar LLM_BASE_URL permite usar llama.cpp local."""
 import logging
 import time
-from urllib.parse import urlparse
 
 import openai
 
@@ -30,7 +29,7 @@ def _get_client() -> openai.OpenAI:
 def _diagnose(exc: openai.OpenAIError) -> str:
     """Causa probable y qué hacer, para quien lee el log."""
     s = get_settings()
-    host = urlparse(s.llm_base_url).netloc
+    host = s.llm_host
     if isinstance(exc, openai.APITimeoutError):
         return (f"timeout tras {s.llm_timeout_seconds}s ({s.llm_max_retries + 1} intentos): "
                 "sube LLM_TIMEOUT_SECONDS o usa un modelo más rápido")

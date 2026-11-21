@@ -6,7 +6,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-logger = logging.getLogger("doculocal")
+from app.core.logging import current_request_id
+
+logger = logging.getLogger("doculocal.errores")
 
 
 class AppError(Exception):
@@ -57,19 +59,29 @@ class ServiceUnavailable(AppError):
     status, error, mensaje = 503, "servicio_no_disponible", "El servicio no está disponible."
 
 
-def _response(status: int, error: str, mensaje: str, detalle: dict | None = None) -> JSONResponse:
+def _response(status: int, error: str, mensaje: str, detalle: dict | None = None) -> tuple[JSONResponse, str]:
+    """Devuelve la respuesta y su `ref`, para que el log lo incluya junto al request id."""
     ref = "err_" + secrets.token_hex(3)
-    return JSONResponse(
+    resp = JSONResponse(
         status_code=status,
         content={"error": error, "mensaje": mensaje, "detalle": detalle or {}, "ref": ref},
+        headers={"X-Request-ID": current_request_id()},  # los 500 sin controlar salen por fuera del middleware
     )
+    return resp, ref
 
 
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(request: Request, exc: AppError):
-        resp = _response(exc.status, exc.error, exc.mensaje, exc.detalle)
-        logger.warning("%s %s -> %s (%s)", request.method, request.url.path, exc.status, exc.error)
+        resp, ref = _response(exc.status, exc.error, exc.mensaje, exc.detalle)
+        msg = "%s %s -> %s motivo=%s ref=%s"
+        args = (request.method, request.url.path, exc.status, exc.error, ref)
+        if exc.status >= 500:
+            logger.error(msg, *args, exc_info=exc)
+        elif exc.status in (401, 403):
+            logger.warning(msg, *args)
+        else:
+            logger.info(msg, *args)
         return resp
 
     @app.exception_handler(RequestValidationError)
@@ -78,15 +90,22 @@ def register_error_handlers(app: FastAPI) -> None:
         for e in exc.errors():
             campo = ".".join(str(p) for p in e["loc"] if p not in ("body", "query", "path", "form"))
             campos[campo or "solicitud"] = e["msg"]
-        return _response(422, "validacion_fallida", "Hay campos inválidos en la solicitud.", {"campos": campos})
+        resp, ref = _response(422, "validacion_fallida", "Hay campos inválidos en la solicitud.", {"campos": campos})
+        logger.info("%s %s -> 422 motivo=validacion_fallida campos=%s ref=%s", request.method, request.url.path,
+                    ",".join(campos), ref)
+        return resp
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http(request: Request, exc: StarletteHTTPException):
         codes = {401: "no_autenticado", 403: "prohibido", 404: "no_encontrado", 405: "metodo_no_permitido"}
-        return _response(exc.status_code, codes.get(exc.status_code, "error_http"), str(exc.detail))
+        error = codes.get(exc.status_code, "error_http")
+        resp, ref = _response(exc.status_code, error, str(exc.detail))
+        logger.log(logging.WARNING if exc.status_code in (401, 403) else logging.INFO,
+                   "%s %s -> %s motivo=%s ref=%s", request.method, request.url.path, exc.status_code, error, ref)
+        return resp
 
     @app.exception_handler(Exception)
     async def handle_unexpected(request: Request, exc: Exception):
-        resp = _response(500, "error_interno", "Ocurrió un error inesperado. Intenta de nuevo más tarde.")
-        logger.exception("Error no controlado en %s %s", request.method, request.url.path)
+        resp, ref = _response(500, "error_interno", "Ocurrió un error inesperado. Intenta de nuevo más tarde.")
+        logger.error("Error no controlado en %s %s ref=%s", request.method, request.url.path, ref, exc_info=exc)
         return resp

@@ -1,10 +1,14 @@
 """Recuperación híbrida filtrada por permisos: vectorial + texto -> RRF -> rerank -> umbral -> diversidad."""
+import logging
+import time
 from dataclasses import dataclass
 
 from app.core.config import get_settings
 from app.repositories import chunk_repository
 from app.services.rag import embeddings, reranker
 from app.services.rag.query_planner import QueryPlan
+
+logger = logging.getLogger("doculocal.recuperacion")
 
 PER_LIST_K = 20
 RRF_K = 60
@@ -60,7 +64,10 @@ def retrieve(question: str, plan: QueryPlan, user: dict) -> list[RetrievedChunk]
         ranked_lists.append([str(r["id"]) for r in rows])
 
     queries = plan.subqueries or [question]
-    for q, emb in zip(queries, embeddings.embed_documents(queries)):
+    t = time.perf_counter()
+    query_vectors = embeddings.embed_documents(queries)
+    ms_embed = round((time.perf_counter() - t) * 1000)
+    for q, emb in zip(queries, query_vectors):
         add(chunk_repository.search_vector(emb, PER_LIST_K, level, dept))
         add(chunk_repository.search_text(q, PER_LIST_K, level, dept))
     if plan.keywords:
@@ -68,10 +75,16 @@ def retrieve(question: str, plan: QueryPlan, user: dict) -> list[RetrievedChunk]
 
     candidates = [cid for cid, _ in rrf_fuse([lst for lst in ranked_lists if lst])[:CANDIDATES]]
     if not candidates:
+        logger.info("Recuperación sin candidatos subconsultas=%d embeddings_ms=%d", len(queries), ms_embed)
         return []
+    t = time.perf_counter()
     scores = reranker.rerank(plan.search_question or question, [rows_by_id[c]["content"] for c in candidates])
+    ms_rerank = round((time.perf_counter() - t) * 1000)
     ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
     relevant = [(c, s) for c, s in ranked if s >= settings.rerank_min_score]
+    logger.info("Recuperación subconsultas=%d candidatos=%d mejor_puntaje=%.2f umbral=%.2f relevantes=%d "
+                "embeddings_ms=%d rerank_ms=%d", len(queries), len(candidates), ranked[0][1],
+                settings.rerank_min_score, len(relevant), ms_embed, ms_rerank)
     chosen = diversify(relevant, MAX_PER_DOCUMENT, settings.retrieval_top_k, key=lambda cs: rows_by_id[cs[0]]["document_id"])
 
     chosen_ids = {c for c, _ in chosen}

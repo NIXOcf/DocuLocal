@@ -48,3 +48,7 @@ def test_health_db_down_is_503(client, monkeypatch):
 def test_llm_mode_from_base_url():
     assert Settings(jwt_secret="x", llm_base_url="http://127.0.0.1:8081/v1").llm_mode == "local"
     assert Settings(jwt_secret="x", llm_base_url="https://api.groq.com/openai/v1").llm_mode == "groq"
+
+
+def test_llm_host_does_not_leak_userinfo():
+    assert Settings(jwt_secret="x", llm_base_url="https://usr:CLAVE@h.test:8443/v1").llm_host == "h.test:8443"

@@ -48,6 +48,12 @@ class Settings(BaseSettings):
         return urlparse(self.llm_base_url).hostname in ("localhost", "127.0.0.1", "::1")
 
     @property
+    def llm_host(self) -> str:
+        """host[:puerto] sin userinfo, seguro para logs (la URL podría traer usuario:clave@)."""
+        u = urlparse(self.llm_base_url)
+        return f"{u.hostname}:{u.port}" if u.port else (u.hostname or "?")
+
+    @property
     def llm_mode(self) -> str:
         return "local" if self.llm_is_local else "groq"
 

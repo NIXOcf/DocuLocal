@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from app.core.config import get_settings
 from app.services.rag.llm_client import llm
 
-logger = logging.getLogger("doculocal")
+logger = logging.getLogger("doculocal.planificador")
 
 TIPOS = ("documental", "saludo", "fuera_de_alcance")
 MAX_SUBQUERIES = 4
