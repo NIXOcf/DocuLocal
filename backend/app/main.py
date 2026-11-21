@@ -8,7 +8,7 @@ from app.api.v1 import auth, conversations, documents, health, users
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
-from app.core.middleware import RequestContextMiddleware
+from app.core.middleware import BodyLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
 from app.repositories import db
 
 
@@ -37,7 +37,13 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="DocuLocal API", version="1.0.0", lifespan=lifespan)
+    docs = get_settings().enable_docs
+    app = FastAPI(title="DocuLocal API", version="1.0.0", lifespan=lifespan,
+                  docs_url="/docs" if docs else None, redoc_url="/redoc" if docs else None,
+                  openapi_url="/openapi.json" if docs else None)
+    # Cada add_middleware queda por fuera del anterior: el límite de cuerpo va dentro de CORS (así el 413 lleva
+    # sus cabeceras) y el contexto de petición queda como capa externa.
+    app.add_middleware(BodyLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origin_list,
@@ -45,6 +51,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         expose_headers=["Location", "X-Request-ID"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
     for module in (health, auth, users, documents, conversations):

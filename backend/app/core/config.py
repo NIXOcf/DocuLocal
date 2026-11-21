@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     llm_timeout_seconds: int = 30
     llm_max_retries: int = 2
 
+    # Swagger/ReDoc/openapi.json: true solo en desarrollo
+    enable_docs: bool = True
+
     log_level: str = "INFO"
     log_dir: str = "backend/logs"
 

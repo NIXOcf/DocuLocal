@@ -47,11 +47,12 @@ def get_visible(document_id: str, access_level: int, department: str | None) -> 
 def list_documents(*, viewer: tuple[int, str | None] | None, status: str | None, level: int | None,
                    q: str | None, limit: int, offset: int) -> tuple[list[dict], int]:
     """viewer=None: administrador (ve todo). Si no, (nivel, departamento) del empleado."""
-    params: dict = {"status": status, "level": level, "p": f"%{q}%" if q else None, "l": limit, "o": offset}
+    params: dict = {"status": status, "level": level, "p": db.like_contains(q) if q else None, "l": limit,
+                    "o": offset}
     where = [
         "(%(status)s::text IS NULL OR d.status = %(status)s)",
         "(%(level)s::int IS NULL OR d.access_level = %(level)s)",
-        "(%(p)s::text IS NULL OR d.original_name ILIKE %(p)s)",
+        "(%(p)s::text IS NULL OR d.original_name ILIKE %(p)s ESCAPE '\\')",
     ]
     if viewer is not None:
         where.append(visibility_clause())

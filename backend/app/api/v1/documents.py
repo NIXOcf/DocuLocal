@@ -15,16 +15,16 @@ router = APIRouter(tags=["documents"])
 
 
 @router.get("/documents", response_model=Page[DocumentOut])
-def list_documents(user: CurrentUser, pagina: Annotated[int, Query(ge=1)] = 1,
+def list_documents(user: CurrentUser, pagina: Annotated[int, Query(ge=1, le=10000)] = 1,
                    tamano: Annotated[int, Query(ge=1, le=100)] = 20,
                    estado: Annotated[str | None, Query(pattern="^(Procesando|Indexado|Error)$")] = None,
-                   nivel: AccessLevel | None = None, q: str | None = None):
+                   nivel: AccessLevel | None = None, q: Annotated[str | None, Query(max_length=100)] = None):
     return document_service.list_documents(user, pagina, tamano, estado, nivel, q)
 
 
 @router.post("/documents", response_model=DocumentOut, status_code=202)
 def upload_document(admin: AdminUser, file: UploadFile, access_level: Annotated[AccessLevel, Form(alias="accessLevel")],
-                    tasks: BackgroundTasks, response: Response, department: Annotated[str | None, Form()] = None):
+                    tasks: BackgroundTasks, response: Response, department: Annotated[str | None, Form(max_length=80)] = None):
     limit = get_settings().max_upload_mb * 1024 * 1024
     content = file.file.read(limit + 1)  # +1 byte para detectar que se pasó del límite
     doc = document_service.upload(admin, file.filename or "", content, access_level, department)

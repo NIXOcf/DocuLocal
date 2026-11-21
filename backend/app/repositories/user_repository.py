@@ -22,8 +22,9 @@ def get_by_email(email: str) -> dict | None:
 
 
 def list_users(q: str | None, limit: int, offset: int) -> tuple[list[dict], int]:
-    pattern = f"%{q}%" if q else None
-    where = "WHERE (%(p)s::text IS NULL OR email ILIKE %(p)s OR display_name ILIKE %(p)s)"
+    pattern = db.like_contains(q) if q else None
+    where = ("WHERE (%(p)s::text IS NULL OR email ILIKE %(p)s ESCAPE '\\' "
+             "OR display_name ILIKE %(p)s ESCAPE '\\')")
     with db.cursor() as cur:
         cur.execute(f"SELECT count(*) AS n FROM users {where}", {"p": pattern})
         total = cur.fetchone()["n"]

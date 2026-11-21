@@ -1,5 +1,7 @@
 import hashlib
+import io
 import uuid
+import zipfile
 from pathlib import Path
 
 from app.core.config import get_settings
@@ -15,6 +17,35 @@ MIME_TYPES = {
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
+
+
+PDF_MAGIC = b"%PDF-"
+# Marcador interno que identifica cada formato OOXML (un ZIP cualquiera no basta)
+ZIP_MARKERS = {".docx": "word/document.xml", ".xlsx": "xl/workbook.xml"}
+MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024  # suma de lo descomprimido en un DOCX/XLSX
+MAX_COMPRESSION_RATIO = 100  # file_size / compress_size por entrada
+
+
+def _validate_content(ext: str, content: bytes) -> None:
+    """Comprueba el tipo real (no solo la extensión) y rechaza bombas de descompresión, antes de guardar."""
+    mismatch = UnsupportedMedia(f"El contenido no corresponde a un archivo {ext[1:].upper()} válido.", "tipo_no_coincide")
+    if ext == ".pdf":
+        if not content.startswith(PDF_MAGIC):
+            raise mismatch
+        return
+    if not zipfile.is_zipfile(io.BytesIO(content)):
+        raise mismatch
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            infos = zf.infolist()
+    except zipfile.BadZipFile:
+        raise mismatch from None
+    if ZIP_MARKERS[ext] not in {i.filename for i in infos}:
+        raise mismatch
+    # shortcut: usa los tamaños declarados en el ZIP (falsificables); al extraer, leer con límite de bytes.
+    if (sum(i.file_size for i in infos) > MAX_UNCOMPRESSED_BYTES
+            or any(i.compress_size > 0 and i.file_size / i.compress_size > MAX_COMPRESSION_RATIO for i in infos)):
+        raise UnsupportedMedia("El archivo tiene una estructura sospechosa y fue rechazado.", "archivo_sospechoso")
 
 
 def format_size(size_bytes: int) -> str:
@@ -72,6 +103,7 @@ def upload(actor: dict, filename: str, content: bytes, access_level: str, depart
         raise BadRequest("El archivo está vacío.", "archivo_vacio")
     if len(content) > settings.max_upload_mb * 1024 * 1024:
         raise PayloadTooLarge(f"El archivo supera el máximo de {settings.max_upload_mb} MB.")
+    _validate_content(ext, content)
     stored_name = f"{uuid.uuid4()}{ext}"
     settings.storage_path.mkdir(parents=True, exist_ok=True)
     path = settings.storage_path / stored_name

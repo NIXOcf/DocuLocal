@@ -13,7 +13,7 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
 @router.get("", response_model=Page[ConversationOut])
-def list_conversations(user: CurrentUser, pagina: Annotated[int, Query(ge=1)] = 1,
+def list_conversations(user: CurrentUser, pagina: Annotated[int, Query(ge=1, le=10000)] = 1,
                        tamano: Annotated[int, Query(ge=1, le=100)] = 20):
     return conversation_service.list_conversations(user, pagina, tamano)
 

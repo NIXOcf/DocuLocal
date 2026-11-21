@@ -57,3 +57,9 @@ def ping() -> bool:
     with cursor() as cur:
         cur.execute("SELECT 1")
         return True
+
+
+def like_contains(text: str) -> str:
+    r"""Patrón `%texto%` con %, _ y \ escapados; usar con ILIKE ... ESCAPE '\'."""
+    escaped = text.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+    return f"%{escaped}%"

@@ -12,8 +12,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=Page[UserOut])
-def list_users(_: AdminUser, pagina: Annotated[int, Query(ge=1)] = 1,
-               tamano: Annotated[int, Query(ge=1, le=100)] = 20, q: str | None = None):
+def list_users(_: AdminUser, pagina: Annotated[int, Query(ge=1, le=10000)] = 1,
+               tamano: Annotated[int, Query(ge=1, le=100)] = 20, q: Annotated[str | None, Query(max_length=100)] = None):
     return user_service.list_users(q, pagina, tamano)
 
 
