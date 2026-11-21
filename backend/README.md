@@ -81,3 +81,35 @@ backend/tests/     pruebas unitarias
 - **Docker apagado**: `/health` responde 503 `bd_no_disponible` o uvicorn no arranca; iniciar Docker Desktop y `docker compose up -d db`.
 - **Falta `GROQ_API_KEY`** (o clave inválida): el chat devuelve 503 `llm_no_disponible`; el resto de la API sigue funcionando.
 - **Respuestas "No encontré información" para algo que sí está**: revisar `RERANK_MIN_SCORE` en `.env` (más bajo = más permisivo) y que el documento esté `Indexado`.
+
+## Modo local con llama.cpp
+
+El asistente puede usar un modelo local en vez de Groq: ningún texto sale del equipo.
+
+1. Descargar llama.cpp (con `llama-server.exe`) y un modelo `.gguf` (p. ej. Qwen3.5).
+2. Levantar el servidor: `backend/scripts/llama_local.ps1 -LlamaDir <carpeta> -Model <modelo.gguf>` (o define `LLAMA_CPP_DIR`). Parámetros: `-Port 8081`, `-CtxSize 8192`, `-GpuLayers 99`, `-ExtraArgs`.
+3. En `.env` (hay un bloque comentado en `.env.example`): `LLM_BASE_URL=http://127.0.0.1:8081/v1`, `LLM_MODEL=local`, `LLM_FAST_MODEL=local`, `LLM_GUARD_MODEL=` (vacío) y `LLM_TIMEOUT_SECONDS=180`. `GROQ_API_KEY` puede quedar vacía. Reiniciar uvicorn.
+
+`GET /api/v1/health` mostrará `"modo": "local"`.
+
+Trade-off: privacidad total y sin cupo, a cambio de menor calidad y más latencia (decenas de segundos por respuesta según la GPU). El detector de inyección (Prompt Guard) solo existe en Groq: en local queda desactivado y se avisa en el log al arrancar. Qwen3.5 necesita `enable_thinking=false` (el script ya lo pasa); `--reasoning-budget 0` no basta y el contenido sale vacío.
+
+## Diagnóstico con logs
+
+- **Dónde**: consola y `backend/logs/doculocal.log` (rotativo, 5 MB × 5; en `.gitignore`). Carpeta y nivel: `LOG_DIR` y `LOG_LEVEL` en `.env`.
+- **DEBUG**: poner `LOG_LEVEL=DEBUG` y reiniciar; añade, por ejemplo, la pregunta truncada a 120 caracteres. En INFO nunca se registra el texto de preguntas ni documentos (solo su largo), ni contraseñas, tokens o claves; los correos van enmascarados (`t***@aguanube.cl`).
+- **Formato**: `fecha nivel [modulo] req=<id> mensaje k=v ...`.
+- **Seguir una petición**: toda respuesta trae la cabecera `X-Request-ID` (se respeta el que envíe el cliente si es alfanumérico/guiones y ≤64 caracteres). Los errores de la API traen además `ref` (`err_xxxxxx`). Buscar cualquiera de los dos: `Select-String backend/logs/doculocal.log -Pattern "err_1a2b3c"` toma la línea con el `ref` y su `req=`; luego buscar ese `req=` para ver toda la petición.
+- Cada consulta de chat deja: líneas `[llm]` (modelo, ms, tokens), `[recuperacion]` (candidatos, mejor puntaje del reranker vs. umbral) y `[chat]` (modo, plan, fuentes, tiempos por etapa).
+
+| Síntoma | Línea de log | Causa | Solución |
+|---|---|---|---|
+| API no arranca / `/health` 503 `bd_no_disponible` | `ERROR [bd] No se pudo conectar a PostgreSQL...` o `[salud] la base de datos no responde` | Docker apagado o puerto distinto | `docker compose up -d db`; revisar `POSTGRES_PORT` |
+| Chat 503, "cupo agotado" | `ERROR [llm] ... cupo de Groq agotado (429)` | Cupo diario/por minuto de Groq | Esperar o pasar a modo local |
+| Chat 503 con clave | `ERROR [llm] ... clave del proveedor rechazada (401)` | `GROQ_API_KEY` inválida o vacía (`WARNING [arranque] Falta GROQ_API_KEY`) | Corregir la clave |
+| Chat 503 en modo local | `ERROR [llm] ... conexión rechazada en 127.0.0.1:8081: ¿está encendido llama-server?` | llama-server apagado o puerto distinto | Ejecutar `llama_local.ps1`; revisar `LLM_BASE_URL` |
+| Chat 503 tras mucho rato (local) | `ERROR [llm] ... timeout tras 30s` | Respuesta larga más lenta que el timeout | Subir `LLM_TIMEOUT_SECONDS` (180) |
+| Primera consulta o seed falla | `ERROR [embeddings] No se pudo cargar el modelo...` (o `[reranker]`) | Modelo sin descargar y sin internet | Conectar a internet para la primera descarga (~1 GB) |
+| Documento queda en `Error` | `WARNING [ingestion] Documento sin texto extraíble` | PDF escaneado sin OCR | Subir una versión con texto (OCR) |
+| "No encontré información" para algo que existe | `[recuperacion] ... mejor_puntaje=-1.5 umbral=-1.30` | Puntaje bajo el umbral, o documento no `Indexado` / sin permiso | Revisar `RERANK_MIN_SCORE` y el estado del documento |
+| `/health` con `"llm": "no_disponible"` | `WARNING [salud] LLM no disponible` | Proveedor caído, sin red o clave inválida | Ver las filas anteriores |
