@@ -38,20 +38,30 @@ class SlidingWindowLimiter:
                 return 0
             return max(1, math.ceil(q[0] + self.window - now))
 
-    def add(self, key: Hashable) -> None:
+    def try_acquire(self, key: Hashable) -> int:
+        """Comprueba y registra un intento en un solo paso atómico.
+
+        Devuelve 0 si había cupo (el intento queda registrado) o los segundos de espera si no (sin registrar).
+        """
         with self._lock:
             now = self._clock()
             if len(self._events) > _SWEEP_AT:
                 for k in list(self._events):
                     self._prune(k, now)
+            q = self._prune(key, now)
+            if len(q) >= self.max_events:
+                return max(1, math.ceil(q[0] + self.window - now))
             self._events.setdefault(key, deque()).append(now)
+            return 0
 
-    def consume(self, key: Hashable) -> int:
-        """Registra un evento si hay cupo y devuelve 0; si no, devuelve los segundos de espera sin registrar."""
-        wait = self.retry_after(key)
-        if wait == 0:
-            self.add(key)
-        return wait
+    def release(self, key: Hashable) -> None:
+        """Descarta el último intento registrado (p. ej. el reservado por un login que resultó exitoso)."""
+        with self._lock:
+            q = self._events.get(key)
+            if q:
+                q.pop()
+                if not q:
+                    del self._events[key]
 
     def reset(self, key: Hashable) -> None:
         with self._lock:
