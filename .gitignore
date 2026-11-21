@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend
+.env
+api key.txt
+backend/storage/
+__pycache__/
+.venv/
+*.pyc
+.pytest_cache/
