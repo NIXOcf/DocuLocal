@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     postgres_user: str = "doculocal"
     postgres_password: str = "doculocal_dev"
     postgres_db: str = "doculocal"
-    postgres_host: str = "localhost"
+    postgres_host: str = "127.0.0.1"
     postgres_port: int = 5432
 
     jwt_secret: str

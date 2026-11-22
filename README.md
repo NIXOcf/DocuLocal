@@ -34,12 +34,12 @@ Los documentos, la base de datos, los embeddings y el reranker quedan en la máq
 
 `GET /api/v1/health` informa el modo activo en el campo `modo`. El front muestra un aviso de privacidad con la variante que corresponde.
 
-Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Se guarda una auditoría mínima de acciones de seguridad (fecha, usuario, acción y recurso; sin IP ni texto de preguntas) que se elimina a los 30 días, y el front muestra un aviso de privacidad informativo. Detalle en [`docs/Hito2_Diseno_Backend.md`](docs/Hito2_Diseno_Backend.md).
+Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Se guarda una auditoría mínima de acciones de seguridad (fecha, usuario, acción y recurso; sin IP ni texto de preguntas) que se elimina a los 30 días, y el front muestra un aviso de privacidad informativo. Contrato y errores en [`docs/API.md`](docs/API.md).
 
 ## Requisitos previos
 
 - Node.js 18 o superior
-- Python 3.12
+- Python **3.12** (no 3.13 ni 3.14: las dependencias fijadas pueden no tener paquetes); en Windows, `winget install Python.Python.3.12`
 - Docker (con Docker Compose)
 - Unos 1,5 GB libres para los modelos locales (se descargan solos la primera vez)
 - Una clave de Groq (`GROQ_API_KEY`), salvo que uses el modo llama.cpp local
@@ -51,7 +51,7 @@ Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de b
 Copy-Item .env.example .env
 
 # 2. Back end
-python -m venv backend\.venv
+py -3.12 -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 
 # 3. Front end
@@ -142,10 +142,8 @@ DocuLocal/
 
 ## Documentos
 
-- [`docs/hito2/DocuLocal_Hito2_Documento_Tecnico.pdf`](docs/hito2/DocuLocal_Hito2_Documento_Tecnico.pdf): documento técnico del Hito 2
-- [`docs/Hito2_Diseno_Backend.md`](docs/Hito2_Diseno_Backend.md): diseño y decisiones del back end
 - [`docs/API.md`](docs/API.md): contrato de la API
-- [`docs/hito2/diagramas/`](docs/hito2/diagramas): arquitectura en capas, despliegue, modelo de datos, pipeline RAG y secuencia
+- Documento técnico del Hito 2 (PDF): se entrega en `docs/` al cierre del hito.
 - [`docs/DocuLocal_INF.pdf`](docs/DocuLocal_INF.pdf): informe del Hito 1
 - [`backend/README.md`](backend/README.md) y [`db/README.md`](db/README.md)
 - [`docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf)

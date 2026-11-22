@@ -30,31 +30,31 @@ Errores de validación (422): `{"error": "validacion_fallida", "detalle": {"camp
 
 ## Endpoints
 
-| Verbo | Ruta | Auth | Éxito | Errores |
-|---|---|---|---|---|
-| GET | `/health` | pública | 200 | 503 `bd_no_disponible` |
-| POST | `/auth/login` | pública | 200 | 401 `credenciales_invalidas`, 403 `usuario_inactivo`, 413, 422, 429 `demasiados_intentos` (+ `Retry-After`) |
-| GET | `/auth/me` | token | 200 | 401 `token_invalido` |
-| GET | `/users` | admin | 200 | 401, 403 |
-| POST | `/users` | admin | 201 + Location | 401, 403, 409 `email_duplicado`, 422 |
-| GET | `/users/{id}` | admin | 200 | 401, 403, 404 `usuario_no_encontrado`, 422 |
-| PATCH | `/users/{id}` | admin | 200 | 401, 403, 404, 409 `no_puedes_degradarte`, 422 |
-| DELETE | `/users/{id}` | admin | 204 | 401, 403, 404, 409 `no_puedes_eliminarte` |
-| GET | `/documents` | token | 200 | 401 |
-| POST | `/documents` | admin | 202 + Location | 400 `archivo_vacio`, 401, 403, 409 `documento_duplicado`, 413, 415 `tipo_no_soportado` / `tipo_no_coincide` / `archivo_sospechoso`, 422 |
-| GET | `/documents/{id}` | token | 200 | 401, 404 `documento_no_encontrado` |
-| PATCH | `/documents/{id}` | admin | 200 | 401, 403, 404, 422 |
-| DELETE | `/documents/{id}` | admin | 204 | 401, 403, 404 |
-| GET | `/documents/{id}/file` | token | 200 (archivo) | 401, 404 `documento_no_encontrado` / `archivo_no_encontrado` |
-| GET | `/chunks/{id}` | token | 200 | 401, 404 `fragmento_no_encontrado` |
-| GET | `/conversations` | token | 200 | 401 |
-| POST | `/conversations` | token | 201 + Location | 401, 409 `limite_conversaciones`, 422 |
-| GET | `/conversations/{id}` | token | 200 | 401, 404 `conversacion_no_encontrada` |
-| PATCH | `/conversations/{id}` | token | 200 | 401, 404, 422 |
-| DELETE | `/conversations/{id}` | token | 204 | 401, 404 |
-| GET | `/conversations/{id}/messages` | token | 200 | 401, 404 |
-| POST | `/conversations/{id}/messages` | token | 201 + Location | 401, 404, 409 `limite_mensajes`, 413, 422, 429 `demasiadas_consultas` (+ `Retry-After`), 503 `llm_no_disponible` |
-| PATCH | `/conversations/{id}/messages/{messageId}` | token | 200 | 401, 404 `conversacion_no_encontrada` / `mensaje_no_encontrado`, 422 |
+| Verbo | Ruta | Auth | Entrada (parámetros / cuerpo) | Éxito | Errores |
+|---|---|---|---|---|---|
+| GET | `/health` | pública | — | 200 | 503 `bd_no_disponible` |
+| POST | `/auth/login` | pública | cuerpo `{email, password}` | 200 | 401 `credenciales_invalidas`, 403 `usuario_inactivo`, 413, 422, 429 `demasiados_intentos` (+ `Retry-After`) |
+| GET | `/auth/me` | token | — | 200 | 401 `token_invalido` |
+| GET | `/users` | admin | query `pagina`, `tamano`, `q` | 200 | 401, 403 |
+| POST | `/users` | admin | cuerpo `{email, password, displayName, role, accessLevel, department}` | 201 + Location | 401, 403, 409 `email_duplicado`, 422 |
+| GET | `/users/{id}` | admin | ruta `id` (UUID) | 200 | 401, 403, 404 `usuario_no_encontrado`, 422 |
+| PATCH | `/users/{id}` | admin | ruta `id`; cuerpo parcial `{displayName, role, accessLevel, department, isActive, password}` | 200 | 401, 403, 404, 409 `no_puedes_degradarte`, 422 |
+| DELETE | `/users/{id}` | admin | ruta `id` | 204 | 401, 403, 404, 409 `no_puedes_eliminarte` |
+| GET | `/documents` | token | query `pagina`, `tamano`, `estado`, `nivel`, `q` | 200 | 401 |
+| POST | `/documents` | admin | multipart: `file`, `accessLevel`, `department` | 202 + Location | 400 `archivo_vacio`, 401, 403, 409 `documento_duplicado`, 413, 415 `tipo_no_soportado` / `tipo_no_coincide` / `archivo_sospechoso`, 422 |
+| GET | `/documents/{id}` | token | ruta `id` | 200 | 401, 404 `documento_no_encontrado` |
+| PATCH | `/documents/{id}` | admin | ruta `id`; cuerpo `{accessLevel, department}` | 200 | 401, 403, 404, 422 |
+| DELETE | `/documents/{id}` | admin | ruta `id` | 204 | 401, 403, 404 |
+| GET | `/documents/{id}/file` | token | ruta `id` | 200 (archivo) | 401, 404 `documento_no_encontrado` / `archivo_no_encontrado` |
+| GET | `/chunks/{id}` | token | ruta `id` | 200 | 401, 404 `fragmento_no_encontrado` |
+| GET | `/conversations` | token | query `pagina`, `tamano` | 200 | 401 |
+| POST | `/conversations` | token | cuerpo opcional `{title}` | 201 + Location | 401, 409 `limite_conversaciones`, 422 |
+| GET | `/conversations/{id}` | token | ruta `id` | 200 | 401, 404 `conversacion_no_encontrada` |
+| PATCH | `/conversations/{id}` | token | ruta `id`; cuerpo `{title}` | 200 | 401, 404, 422 |
+| DELETE | `/conversations/{id}` | token | ruta `id` | 204 | 401, 404 |
+| GET | `/conversations/{id}/messages` | token | ruta `id` | 200 | 401, 404 |
+| POST | `/conversations/{id}/messages` | token | ruta `id`; cuerpo `{content}` (1–2000) | 201 + Location | 401, 404, 409 `limite_mensajes`, 413, 422, 429 `demasiadas_consultas` (+ `Retry-After`), 503 `llm_no_disponible` |
+| PATCH | `/conversations/{id}/messages/{messageId}` | token | rutas `id`, `messageId`; cuerpo `{feedback: up|down|null}` | 200 | 401, 404 `conversacion_no_encontrada` / `mensaje_no_encontrado`, 422 |
 
 Las conversaciones son siempre del usuario autenticado: una ajena o inexistente da 404 `conversacion_no_encontrada`.
 Límites: 50 conversaciones por usuario y 100 mensajes por conversación (409).

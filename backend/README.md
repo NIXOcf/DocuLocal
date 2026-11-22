@@ -1,7 +1,7 @@
 # DocuLocal · Back end (Hito 2)
 
 API REST en FastAPI con un asistente RAG sobre los documentos internos de la empresa, con control de acceso por nivel
-(General < Jefatura < Gerencia). Diseño y decisiones: `docs/Hito2_Diseno_Backend.md`; contrato: `docs/API.md`.
+(General < Jefatura < Gerencia). Contrato de la API: `docs/API.md`; modelo de datos: `db/README.md`.
 
 ## Requisitos
 
@@ -51,7 +51,7 @@ El administrador gestiona usuarios y documentos; para el chat rige su propio niv
 ## Pruebas y evaluación
 
 ```bash
-backend/.venv/Scripts/python -m pytest backend            # unitarias: sin BD ni red
+backend/.venv/Scripts/python -m pytest -q backend            # unitarias: sin BD ni red
 backend/.venv/Scripts/python backend/scripts/eval_rag.py  # extremo a extremo (BD con seed + Groq); escribe backend/scripts/eval_resultados.md
 ```
 

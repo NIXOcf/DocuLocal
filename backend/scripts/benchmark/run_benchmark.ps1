@@ -5,7 +5,7 @@
 # Mide también RAM del proceso, VRAM y RAM de la BD (para los requisitos mínimos).
 # Resultados: <etiqueta>.md por modelo, recursos.csv y COMPARATIVA.md. Si ya existe el .md de un modelo se omite (-Forzar lo repite).
 param(
-    [string]$LlamaDir = $(if ($env:LLAMA_CPP_DIR) { $env:LLAMA_CPP_DIR } else { "F:\peliculas\llama-b9518-bin-win-vulkan-x64" }),
+    [string]$LlamaDir = $(if ($env:LLAMA_CPP_DIR) { $env:LLAMA_CPP_DIR } else { throw "Define LLAMA_CPP_DIR o pasa -LlamaDir" }),
     [string[]]$Modelos = @("granite-4.2-8b", "qwen3.5-9b", "gemma-4-e4b", "gpt-oss-20b", "gemma-4-12b", "gemma-4-26b-a4b", "qwen3.6-35b-a3b"),
     [switch]$ConGroq,
     [switch]$Forzar,
