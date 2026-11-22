@@ -50,7 +50,7 @@ function Invoke-Eval([string]$Etiqueta) {
 
 New-Item -ItemType Directory -Force "$Out\logs" | Out-Null
 Set-Location $Root
-docker compose up -d db | Out-Null
+$ErrorActionPreference = "Continue"; docker compose up -d db 2>&1 | Out-Null; $ErrorActionPreference = "Stop"  # docker escribe en stderr y con Stop abortaría
 Stop-Port 8081; Stop-Port 8001
 
 foreach ($m in $Modelos) {
