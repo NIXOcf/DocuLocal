@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from app.core.errors import Conflict, NotFound
 from app.core.security import hash_password
 from app.repositories import user_repository
@@ -37,10 +39,14 @@ def create_user(actor: dict, data: UserCreate) -> UserOut:
 
 def update_user(actor: dict, user_id: str, data: UserUpdate) -> UserOut:
     fields = data.model_dump(exclude_unset=True)
+    if str(actor["id"]) == user_id and (fields.get("role") not in (None, "admin") or fields.get("is_active") is False):
+        raise Conflict("No puedes quitarte el rol de administrador ni desactivarte a ti mismo.",
+                       "no_puedes_degradarte")
     if "password" in fields:
         password = fields.pop("password")
         if password is not None:
             fields["password_hash"] = hash_password(password)
+            fields["password_changed_at"] = datetime.now(timezone.utc)  # invalida los tokens anteriores
     if "access_level" in fields and fields["access_level"] is not None:
         fields["access_level"] = level_to_int(fields["access_level"])
     # Campos obligatorios no aceptan null explícito; department sí (limpiarlo).
@@ -50,7 +56,7 @@ def update_user(actor: dict, user_id: str, data: UserUpdate) -> UserOut:
     row = user_repository.update(user_id, fields)
     if row is None:
         raise NotFound("El usuario no existe.", "usuario_no_encontrado")
-    audit_service.record(str(actor["id"]), "user.update", "user", user_id, campos=sorted(set(fields) - {"password_hash"}))
+    audit_service.record(str(actor["id"]), "user.update", "user", user_id, campos=sorted(set(fields) - {"password_hash", "password_changed_at"}))
     return to_user_out(row)
 
 

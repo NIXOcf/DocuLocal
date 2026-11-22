@@ -3,21 +3,15 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.core.errors import Forbidden, Unauthorized
+from app.core.errors import Forbidden
 from app.core.logging import set_user_id
-from app.core.security import decode_access_token
-from app.repositories import user_repository
+from app.services import auth_service
 
 _bearer = HTTPBearer(auto_error=False)
 
 
 def get_current_user(creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)]) -> dict:
-    claims = decode_access_token(creds.credentials) if creds else None
-    if claims is None:
-        raise Unauthorized("Sesión inválida o expirada.", "token_invalido")
-    user = user_repository.get_by_id(claims["sub"])
-    if user is None or not user["is_active"]:
-        raise Unauthorized("Sesión inválida o expirada.", "token_invalido")
+    user = auth_service.get_active_user(creds.credentials if creds else None)
     set_user_id(str(user["id"]))
     return user
 

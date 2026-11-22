@@ -12,9 +12,14 @@ from app.core.middleware import BodyLimitMiddleware, RequestContextMiddleware, S
 from app.repositories import db
 
 
+MIN_JWT_SECRET_CHARS = 32
+
+
 def _log_startup() -> None:
     """Resumen de configuración para diagnóstico; nunca incluye claves ni contraseñas."""
     s = get_settings()
+    if len(s.jwt_secret) < MIN_JWT_SECRET_CHARS:
+        raise RuntimeError(f"JWT_SECRET debe tener al menos {MIN_JWT_SECRET_CHARS} caracteres.")
     log = logging.getLogger("doculocal.arranque")
     log.info("DocuLocal API iniciando modo_llm=%s llm_host=%s modelo=%s modelo_rapido=%s guard=%s clave_llm=%s "
              "timeout_llm=%ds reintentos_llm=%d bd=%s:%s/%s log_level=%s log_dir=%s",

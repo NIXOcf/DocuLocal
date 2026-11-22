@@ -20,6 +20,7 @@ CREATE TABLE users (
     access_level  smallint NOT NULL CHECK (access_level BETWEEN 1 AND 3),
     department    text,
     is_active     boolean NOT NULL DEFAULT true,
+    password_changed_at timestamptz,  -- los tokens emitidos antes de esta fecha dejan de valer
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now()
 );

@@ -2,7 +2,7 @@ from psycopg import errors as pg_errors
 
 from app.repositories import db
 
-_COLUMNS = "id, email, password_hash, display_name, role, access_level, department, is_active, created_at"
+_COLUMNS = "id, email, password_hash, display_name, role, access_level, department, is_active, created_at, password_changed_at"
 
 
 class DuplicateEmail(Exception):
@@ -50,7 +50,7 @@ def create(email: str, password_hash: str, display_name: str, role: str, access_
 
 
 # Columnas que PATCH puede modificar (lista blanca; los nombres nunca vienen del cliente).
-_UPDATABLE = {"display_name", "role", "access_level", "department", "is_active", "password_hash"}
+_UPDATABLE = {"display_name", "role", "access_level", "department", "is_active", "password_hash", "password_changed_at"}
 
 
 def update(user_id: str, fields: dict) -> dict | None:

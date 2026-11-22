@@ -21,13 +21,16 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def create_access_token(user_id: str, role: str) -> str:
     settings = get_settings()
-    exp = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expires_minutes)
-    return jwt.encode({"sub": user_id, "role": role, "exp": exp}, settings.jwt_secret, algorithm=ALGORITHM)
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=settings.jwt_expires_minutes)
+    return jwt.encode({"sub": user_id, "role": role, "iat": now, "exp": exp}, settings.jwt_secret,
+                      algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> dict | None:
     """Devuelve los claims o None si el token es inválido o expiró."""
     try:
-        return jwt.decode(token, get_settings().jwt_secret, algorithms=[ALGORITHM])
+        return jwt.decode(token, get_settings().jwt_secret, algorithms=[ALGORITHM],
+                          options={"require": ["exp", "sub", "iat"]})
     except jwt.PyJWTError:
         return None
