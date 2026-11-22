@@ -77,7 +77,7 @@ def list_messages(user: dict, conversation_id: str) -> list[MessageOut]:
 
 def post_message(user: dict, conversation_id: str, content: str) -> AnswerOut:
     _owned(user, conversation_id)
-    wait = ask_limiter.try_acquire(str(user["id"]))
+    wait, _ = ask_limiter.try_acquire(str(user["id"]))
     if wait:
         raise TooManyRequests("Estás haciendo demasiadas preguntas. Espera un momento.", "demasiadas_consultas",
                               headers={"Retry-After": str(wait)})
