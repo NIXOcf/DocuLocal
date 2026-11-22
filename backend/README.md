@@ -1,7 +1,7 @@
 # DocuLocal · Back end (Hito 2)
 
 API REST en FastAPI con un asistente RAG sobre los documentos internos de la empresa, con control de acceso por nivel
-(General < Jefatura < Gerencia). Diseño y decisiones: `Docs/Hito2_Diseno_Backend.md`; contrato: `Docs/API.md`.
+(General < Jefatura < Gerencia). Diseño y decisiones: `docs/Hito2_Diseno_Backend.md`; contrato: `docs/API.md`.
 
 ## Requisitos
 
@@ -20,7 +20,7 @@ uv venv backend/.venv --python 3.12        # o: python -m venv backend/.venv
 uv pip install -r backend/requirements.txt --python backend/.venv/Scripts/python   # o: backend/.venv/Scripts/pip install -r ...
                                            # (en Linux/Mac: backend/.venv/bin/python)
 
-backend/.venv/Scripts/python backend/scripts/seed.py                   # usuarios y 19 PDF de Docs/prueba (≈2 min)
+backend/.venv/Scripts/python backend/scripts/seed.py                   # usuarios y 19 PDF de docs/prueba (≈2 min)
 backend/.venv/Scripts/python -m uvicorn app.main:app --app-dir backend --port 8000 --no-server-header
 ```
 

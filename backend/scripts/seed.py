@@ -27,7 +27,7 @@ LEVELS = {  # prefijo numérico del PDF -> nivel de acceso
     **dict.fromkeys(["02", "06", "14", "15", "16", "17"], "Jefatura"),
     **dict.fromkeys(["03b", "05", "09", "10", "18"], "Gerencia"),
 }
-PDF_DIR = ROOT_DIR / "Docs" / "prueba"
+PDF_DIR = ROOT_DIR / "docs" / "prueba"
 
 
 def seed_users() -> dict:
