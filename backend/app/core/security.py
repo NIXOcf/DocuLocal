@@ -1,3 +1,5 @@
+import math
+import time
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -23,7 +25,8 @@ def create_access_token(user_id: str, role: str) -> str:
     settings = get_settings()
     now = datetime.now(timezone.utc)
     exp = now + timedelta(minutes=settings.jwt_expires_minutes)
-    return jwt.encode({"sub": user_id, "role": role, "iat": now, "exp": exp}, settings.jwt_secret,
+    iat = math.floor(time.time() * 1000) / 1000  # milisegundos (hacia abajo): detecta cambios de clave en el mismo segundo
+    return jwt.encode({"sub": user_id, "role": role, "iat": iat, "exp": exp}, settings.jwt_secret,
                       algorithm=ALGORITHM)
 
 

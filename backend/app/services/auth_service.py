@@ -37,6 +37,21 @@ _login_lock = threading.Lock()  # comprobar los bloqueos duros y reservar en tod
 _sleep = time.sleep  # sustituible en pruebas
 
 
+# shortcut: un lock por cuenta en un dict en memoria de un solo proceso (se purgan los libres al pasar de
+# _MAX_ACCOUNT_LOCKS para acotar la memoria); con varias instancias, serializar con Redis.
+_MAX_ACCOUNT_LOCKS = 10_000
+_account_locks: dict[str, threading.Lock] = {}
+_account_locks_guard = threading.Lock()
+
+
+def _account_lock(account: str) -> threading.Lock:
+    with _account_locks_guard:
+        if len(_account_locks) > _MAX_ACCOUNT_LOCKS:
+            for k in [k for k, lk in _account_locks.items() if not lk.locked()]:
+                del _account_locks[k]
+        return _account_locks.setdefault(account, threading.Lock())
+
+
 def account_delay(attempts: int) -> int:
     """Segundos de espera antes de verificar la contraseña, según los intentos recientes sobre la cuenta."""
     if attempts <= LOGIN_ACCOUNT_FREE_ATTEMPTS:
@@ -58,7 +73,7 @@ def get_active_user(token: str | None) -> dict:
     if user is None or not user["is_active"]:
         raise invalid
     changed = user.get("password_changed_at")
-    if changed is not None and claims["iat"] < int(changed.timestamp()):  # iat va en segundos enteros
+    if changed is not None and claims["iat"] < changed.timestamp():  # iat con precisión de milisegundos
         raise invalid
     return user
 
@@ -88,11 +103,14 @@ def login(email: str, password: str, client_ip: str | None = None) -> LoginOut:
         logger.warning("Login bloqueado motivo=demasiados_intentos email=%s espera=%ds", mask_email(email), wait)
         raise TooManyRequests("Demasiados intentos fallidos. Intenta de nuevo más tarde.", "demasiados_intentos",
                               headers={"Retry-After": str(wait)})
-    delay = account_delay(login_account_limiter.count(account))
-    if delay:
-        _sleep(delay)
-    user = user_repository.get_by_email(email)
-    valid = verify_password(password, user["password_hash"] if user else _DUMMY_HASH)
+    # El retraso y la verificación van dentro del lock de la cuenta: los intentos simultáneos esperan en fila
+    # y el retraso sí limita el ritmo (en paralelo dormirían todos a la vez).
+    with _account_lock(account):
+        delay = account_delay(login_account_limiter.count(account))
+        if delay:
+            _sleep(delay)
+        user = user_repository.get_by_email(email)
+        valid = verify_password(password, user["password_hash"] if user else _DUMMY_HASH)
     if user is None or not valid:
         # sin el correo completo en la auditoría: user_id si existe, si no el correo enmascarado
         audit_service.record(str(user["id"]) if user else None, "auth.login_failed", "user",

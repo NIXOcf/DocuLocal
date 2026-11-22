@@ -2,6 +2,7 @@
 import io
 import logging
 import threading
+import time
 import zipfile
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -113,6 +114,18 @@ def test_login_account_gets_progressive_delay_never_429(login_env):
     assert login_env.sleeps[0] == 2 and max(login_env.sleeps) == auth_service.LOGIN_ACCOUNT_MAX_DELAY_SECONDS
     assert login_env.sleeps == sorted(login_env.sleeps)
     auth_service.login("t@aguanube.cl", "ok", "10.0.1.1")  # el usuario legítimo entra (con espera), sin 429
+
+
+def test_login_account_delay_is_serialized(login_env, monkeypatch):
+    monkeypatch.setattr(auth_service, "account_delay", lambda attempts: 0.2)
+    monkeypatch.setattr(auth_service, "_sleep", time.sleep)
+    ts = [threading.Thread(target=lambda i=i: pytest.raises(Unauthorized, auth_service.login,
+                                                             "t@aguanube.cl", "mala", f"7.7.7.{i}"))
+          for i in range(3)]
+    start = time.perf_counter()
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    assert time.perf_counter() - start >= 0.55  # la suma de los retrasos (0,6 s), no el máximo (0,2 s)
 
 
 def test_login_concurrent_bad_passwords_at_most_five_verified(login_env):
@@ -313,9 +326,15 @@ def test_jwt_requires_iat_sub_and_rejects_before_password_change(monkeypatch):
     monkeypatch.setattr(auth_service.user_repository, "get_by_id", lambda i: row)
     token = auth_service.create_access_token(uid, "employee")
     assert auth_service.get_active_user(token)["id"] == uid
-    row["password_changed_at"] = datetime.now(timezone.utc) + timedelta(seconds=5)
+    # precisión de milisegundos: un token emitido 0,2 s antes del cambio de clave ya no vale; uno posterior sí
+    changed = datetime.now(timezone.utc)
+    row["password_changed_at"] = changed
+
+    def token_at(offset: float) -> str:
+        return jwt.encode({"sub": uid, "exp": exp, "iat": changed.timestamp() + offset}, secret, algorithm="HS256")
     with pytest.raises(Unauthorized):
-        auth_service.get_active_user(token)
+        auth_service.get_active_user(token_at(-0.2))
+    assert auth_service.get_active_user(token_at(0.0))["id"] == uid
 
 
 def test_log_sanitize_single_line():
