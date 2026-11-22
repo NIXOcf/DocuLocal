@@ -1,0 +1,8 @@
+etiqueta,modelo_gb,ram_llama_mb,ram_backend_mb,vram_mb,ram_bd_mb,duracion_s
+granite-4.2-8b,5,11630,6663,7575,54,1503
+qwen3.5-9b,5.3,10366,6039,6658,55,878
+gemma-4-e4b,5,5156,6044,4650,57,1100
+gpt-oss-20b,11.3,12976,6902,6171,57,934
+gemma-4-12b,6.9,11459,6397,7174,57,465
+groq-gpt-oss-120b,0,175,142,4881,53,15
+groq-gpt-oss-120b,0,0,6495,853,54,232
