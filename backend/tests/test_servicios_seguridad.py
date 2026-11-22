@@ -93,11 +93,11 @@ def test_login_sixth_attempt_429_with_retry_after_and_reset_on_success(login_env
     # el éxito limpia el contador del par
     for _ in range(4):
         with pytest.raises(Unauthorized):
-            auth_service.login("t@aguanube.cl", "mala", "3.3.3.3")
-    auth_service.login("t@aguanube.cl", "ok", "3.3.3.3")
+            auth_service.login("r@aguanube.cl", "mala", "3.3.3.3")
+    auth_service.login("r@aguanube.cl", "ok", "3.3.3.3")
     for _ in range(4):
         with pytest.raises(Unauthorized):
-            auth_service.login("t@aguanube.cl", "mala", "3.3.3.3")
+            auth_service.login("r@aguanube.cl", "mala", "3.3.3.3")
 
 
 def test_login_ip_limit_across_emails(login_env):
@@ -118,13 +118,16 @@ def test_login_account_turns_bounded_wait_then_429(login_env):
         auth_service.login("t@aguanube.cl", "mala", "10.0.0.99")
     assert e.value.error == "demasiados_intentos" and e.value.headers["Retry-After"] == "14"
     assert login_env.sleeps == [2, 6]
-    login_env.now[0] = 100.0  # pasado el turno, el usuario legítimo entra y se limpia la cuenta
+    # pasado el turno, el usuario legítimo entra: se limpia su par (IP, cuenta) y se libera su propio intento,
+    # pero los 8 fallos desde otras IP siguen contando (un login legítimo no reinicia a un atacante distribuido)
+    login_env.now[0] = 100.0
     auth_service.login("t@aguanube.cl", "ok", "10.0.1.1")
-    assert auth_service.login_account_limiter.count("t@aguanube.cl") == 0
+    assert auth_service.login_account_limiter.count("t@aguanube.cl") == 8
+    assert auth_service.login_pair_limiter.count(("10.0.1.1", "t@aguanube.cl")) == 0
     login_env.sleeps.clear()
     with pytest.raises(Unauthorized):
         auth_service.login("t@aguanube.cl", "mala", "10.0.1.2")
-    assert login_env.sleeps == []
+    assert login_env.sleeps == [8]  # el conteo sigue alto: el siguiente intento espera el retraso máximo
 
 
 def test_login_concurrent_attempts_on_account_are_spaced_by_the_delay(login_env, monkeypatch):

@@ -90,9 +90,8 @@ def _reserve_login_attempt(ip: str, account: str) -> tuple[int, float, dict]:
         hard = max(login_pair_limiter.retry_after((ip, account)), login_ip_limiter.retry_after(ip))
         if hard:
             return hard, 0.0, {}
-        tokens = {"ip": login_ip_limiter.try_acquire(ip)[1]}
+        tokens = {"ip": login_ip_limiter.try_acquire(ip)[1], "account": login_account_limiter.try_acquire(account)[1]}
         login_pair_limiter.try_acquire((ip, account))
-        login_account_limiter.try_acquire(account)
         _next_allowed[account] = slot + account_delay(login_account_limiter.count(account))
         if len(_next_allowed) > _MAX_SLOT_ENTRIES:
             for k in [k for k, t in _next_allowed.items() if t <= now]:
@@ -121,12 +120,12 @@ def login(email: str, password: str, client_ip: str | None = None) -> LoginOut:
         audit_service.record(str(user["id"]), "auth.login_blocked", "user", str(user["id"]))
         logger.warning("Login fallido motivo=inactivo user_id=%s", user["id"])
         raise Forbidden("Tu cuenta está desactivada. Contacta al administrador.", "usuario_inactivo")
-    # éxito: limpia el par y la cuenta (contador y turnos) y descarta solo el intento reservado en la IP
+    # éxito: limpia el par (IP, cuenta) y libera solo el intento reservado por esta petición en la IP y la cuenta;
+    # el contador compartido y el turno de la cuenta no se tocan (vencen con la ventana): así un login legítimo
+    # no reinicia el conteo de un atacante distribuido.
     login_pair_limiter.reset((ip, account))
-    login_account_limiter.reset(account)
-    with _login_lock:
-        _next_allowed.pop(account, None)
     login_ip_limiter.release(ip, tokens["ip"])
+    login_account_limiter.release(account, tokens["account"])
     audit_service.record(str(user["id"]), "auth.login", "user", str(user["id"]))
     logger.info("Login exitoso user_id=%s", user["id"])
     token = create_access_token(str(user["id"]), user["role"])
