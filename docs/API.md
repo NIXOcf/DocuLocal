@@ -61,7 +61,7 @@ Límites: 50 conversaciones por usuario y 100 mensajes por conversación (409).
 
 ### Salud
 
-`GET /health` → `200 {"estado": "ok", "db": "ok"}`
+`GET /health` → `200 {"estado": "ok", "db": "ok", "llm": "ok", "modo": "groq"}` (`llm`: `ok`, `no_disponible` o `sin_configurar`, cacheado 30 s; `modo` indica el proveedor activo (`groq` o local)). Sin BD: `503 bd_no_disponible`.
 
 ### Auth
 
