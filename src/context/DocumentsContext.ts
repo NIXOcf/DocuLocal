@@ -1,4 +1,5 @@
 import { createContext } from "react"
+import type { ListStatus } from "@/context/ChatContext"
 import type { AccessLevel, DocumentItem } from "@/types"
 
 export interface RejectedFile {
@@ -13,8 +14,17 @@ export interface AddFilesResult {
 
 export interface DocumentsContextValue {
   documents: DocumentItem[]
+  status: ListStatus
+  page: number
+  pages: number
+  total: number
+  setPage: (page: number) => void
+  reload: () => void
+  /** Archivos pendientes de subir (en cola o subiéndose ahora). */
+  queued: number
+  /** Valida y encola los archivos; se suben de a uno. */
   addFiles: (files: File[], accessLevel: AccessLevel) => AddFilesResult
-  removeDocument: (id: string) => void
+  removeDocument: (id: string) => Promise<boolean>
 }
 
 export const DocumentsContext = createContext<DocumentsContextValue | null>(null)

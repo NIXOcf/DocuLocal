@@ -1,6 +1,7 @@
 {
   "name": "doculocal",
   "private": true,
+  "packageManager": "pnpm@12.21.0",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

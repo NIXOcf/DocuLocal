@@ -1,299 +1,191 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { ChatContext } from "@/context/ChatContext"
-import type {
-  ChatContextValue,
-  ChatPhase,
-  StreamingState,
-} from "@/context/ChatContext"
-import { mockResponses, seedConversations } from "@/data/mockData"
-import { createId } from "@/lib/id"
-import { prefersReducedMotion } from "@/lib/motion"
-import { sanitizeText } from "@/lib/sanitize"
-import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage"
-import { LIMITS, isConversationList } from "@/lib/validators"
-import type { Conversation, Feedback, Message, Source } from "@/types"
+import type { ChatContextValue, ListStatus, PendingQuestion } from "@/context/ChatContext"
+import { useAuth } from "@/hooks/useAuth"
+import { useToast } from "@/hooks/useToast"
+import { errorMessage, request } from "@/lib/api"
+import type { Page } from "@/lib/api"
+import type { Conversation, Feedback, Message } from "@/types"
 
 const MAX_INPUT_LENGTH = 2000
-const TITLE_LENGTH = 40
-const SEARCH_DELAY_MS = 1200
-const STREAM_INTERVAL_MS = 35
-const STOPPED_SUFFIX = " [Generación detenida]"
+const TITLE_LENGTH = 60
+const LIST_PAGE_SIZE = 50
 
-interface Generation {
-  conversationId: string
-  tokens: string[]
-  index: number
-  text: string
-  fullText: string
-  sources: Source[]
-}
+type ConversationWithMessages = Conversation & { messages: Message[] }
+type AssistantResponse = Message & { question: Message }
 
-/** Ordena por actividad reciente y aplica los límites de almacenamiento. */
-function enforceLimits(list: Conversation[]): Conversation[] {
-  return [...list]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, LIMITS.conversations)
-    .map((conversation) =>
-      conversation.messages.length > LIMITS.messagesPerConversation
-        ? {
-            ...conversation,
-            messages: conversation.messages.slice(-LIMITS.messagesPerConversation),
-          }
-        : conversation,
-    )
-}
-
-function loadConversations(): Conversation[] {
-  return enforceLimits(
-    safeGet(STORAGE_KEYS.conversations, isConversationList, seedConversations),
-  )
-}
-
-function countAssistantMessages(list: Conversation[]): number {
-  return list.reduce(
-    (total, conversation) =>
-      total + conversation.messages.filter((m) => m.role === "assistant").length,
-    0,
-  )
-}
-
+/** Se monta con `key` = id de usuario (ver App): al cambiar de usuario se reinicia todo. */
 function ChatProvider({ children }: { children: ReactNode }) {
-  const [conversations, setConversations] =
-    useState<Conversation[]>(loadConversations)
-  const [streaming, setStreaming] = useState<StreamingState | null>(null)
-  const [phase, setPhaseState] = useState<ChatPhase>("idle")
-  const [activeConversationId, setActiveConversationId] = useState<
-    string | null
-  >(null)
+  const { isAuthenticated } = useAuth()
+  const { notify } = useToast()
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [listStatus, setListStatus] = useState<ListStatus>(isAuthenticated ? "loading" : "ready")
+  const [messagesByConversation, setMessages] = useState<Record<string, Message[]>>({})
+  const [pending, setPending] = useState<PendingQuestion | null>(null)
+  const [listVersion, setListVersion] = useState(0)
+  const pendingRef = useRef(false)
 
-  const conversationsRef = useRef(conversations)
-  const phaseRef = useRef<ChatPhase>("idle")
-  // Id de la conversación en generación; se lee en stopGeneration durante "searching".
-  const activeIdRef = useRef<string | null>(null)
-  const generationRef = useRef<Generation | null>(null)
-  const searchTimeoutRef = useRef<number | null>(null)
-  const streamIntervalRef = useRef<number | null>(null)
-
-  // Solo se persisten mensajes completos: el texto en streaming vive en otro estado.
   useEffect(() => {
-    conversationsRef.current = conversations
-    safeSet(STORAGE_KEYS.conversations, conversations)
-  }, [conversations])
+    if (!isAuthenticated) return
+    let cancelled = false
+    request<Page<Conversation>>(`/conversations?pagina=1&tamano=${LIST_PAGE_SIZE}`)
+      .then((page) => {
+        if (cancelled) return
+        setConversations(page.datos)
+        setListStatus("ready")
+      })
+      .catch(() => !cancelled && setListStatus("error"))
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, listVersion])
 
-  const clearTimers = useCallback(() => {
-    if (searchTimeoutRef.current !== null) {
-      clearTimeout(searchTimeoutRef.current)
-      searchTimeoutRef.current = null
-    }
-    if (streamIntervalRef.current !== null) {
-      clearInterval(streamIntervalRef.current)
-      streamIntervalRef.current = null
-    }
+  const reloadConversations = useCallback(() => {
+    setListStatus("loading")
+    setListVersion((v) => v + 1)
   }, [])
 
-  useEffect(() => clearTimers, [clearTimers])
-
-  const setPhase = useCallback((next: ChatPhase) => {
-    phaseRef.current = next
-    setPhaseState(next)
+  const loadMessages = useCallback(async (conversationId: string) => {
+    const data = await request<ConversationWithMessages>(
+      `/conversations/${encodeURIComponent(conversationId)}`,
+    )
+    // Si mientras tanto ya hay mensajes (p. ej. una pregunta recién enviada), se conservan.
+    setMessages((prev) =>
+      prev[conversationId] ? prev : { ...prev, [conversationId]: data.messages },
+    )
   }, [])
 
-  const updateConversations = useCallback(
-    (updater: (prev: Conversation[]) => Conversation[]) => {
-      const next = enforceLimits(updater(conversationsRef.current))
-      conversationsRef.current = next
-      setConversations(next)
-    },
-    [],
-  )
+  const touchConversation = useCallback((id: string, updatedAt: number) => {
+    setConversations((prev) => {
+      const current = prev.find((c) => c.id === id)
+      return current ? [{ ...current, updatedAt }, ...prev.filter((c) => c.id !== id)] : prev
+    })
+  }, [])
 
-  const appendMessage = useCallback(
-    (conversationId: string, message: Message) => {
-      updateConversations((prev) =>
-        prev.map((conversation) =>
-          conversation.id === conversationId
-            ? {
-                ...conversation,
-                messages: [...conversation.messages, message],
-                updatedAt: message.createdAt,
-              }
-            : conversation,
-        ),
-      )
-    },
-    [updateConversations],
-  )
-
-  const finishGeneration = useCallback(() => {
-    clearTimers()
-    generationRef.current = null
-    activeIdRef.current = null
-    setStreaming(null)
-    setActiveConversationId(null)
-    setPhase("idle")
-  }, [clearTimers, setPhase])
-
-  const commitAssistant = useCallback(
-    (conversationId: string, content: string, sources?: Source[]) => {
-      const message: Message = {
-        id: createId("assistant"),
-        role: "assistant",
-        content,
-        feedback: null,
-        createdAt: Date.now(),
-      }
-      if (sources && sources.length > 0) {
-        message.sources = sources
-      }
-      appendMessage(conversationId, message)
-    },
-    [appendMessage],
-  )
-
-  const startGeneration = useCallback(
-    (conversationId: string) => {
-      activeIdRef.current = conversationId
-      setActiveConversationId(conversationId)
-      setPhase("searching")
-
-      searchTimeoutRef.current = window.setTimeout(() => {
-        searchTimeoutRef.current = null
-        const index =
-          countAssistantMessages(conversationsRef.current) % mockResponses.length
-        const response = mockResponses[index]
-
-        if (prefersReducedMotion()) {
-          commitAssistant(conversationId, response.content, response.sources)
-          finishGeneration()
-          return
+  const sendMessage = useCallback<ChatContextValue["sendMessage"]>(
+    async (conversationId, rawText, onCreated) => {
+      const text = rawText.trim()
+      if (text === "" || text.length > MAX_INPUT_LENGTH || pendingRef.current) return false
+      pendingRef.current = true
+      setPending({ conversationId, text })
+      try {
+        let id = conversationId
+        if (id === null) {
+          const created = await request<Conversation>("/conversations", {
+            method: "POST",
+            json: { title: text.slice(0, TITLE_LENGTH) },
+          })
+          id = created.id
+          setConversations((prev) => [created, ...prev])
+          setMessages((prev) => ({ ...prev, [created.id]: [] }))
+          setPending({ conversationId: id, text })
+          onCreated?.(id)
         }
-
-        const generation: Generation = {
-          conversationId,
-          tokens: response.content.split(/(\s+)/),
-          index: 0,
-          text: "",
-          fullText: response.content,
-          sources: response.sources,
-        }
-        generationRef.current = generation
-        setStreaming({ conversationId, text: "" })
-        setPhase("streaming")
-
-        streamIntervalRef.current = window.setInterval(() => {
-          const current = generationRef.current
-          if (current === null) return
-          // Avanza una palabra junto con el espacio que la sigue.
-          current.index = Math.min(current.index + 2, current.tokens.length)
-          current.text = current.tokens.slice(0, current.index).join("")
-          if (current.index >= current.tokens.length) {
-            commitAssistant(current.conversationId, current.fullText, current.sources)
-            finishGeneration()
-            return
-          }
-          setStreaming({ conversationId: current.conversationId, text: current.text })
-        }, STREAM_INTERVAL_MS)
-      }, SEARCH_DELAY_MS)
-    },
-    [commitAssistant, finishGeneration, setPhase],
-  )
-
-  const sendMessage = useCallback(
-    (conversationId: string | null, rawText: string): string | null => {
-      const text = sanitizeText(rawText, MAX_INPUT_LENGTH)
-      if (text === "" || phaseRef.current !== "idle") return null
-
-      const now = Date.now()
-      const userMessage: Message = {
-        id: createId("user"),
-        role: "user",
-        content: text,
-        createdAt: now,
+        const { question, ...answer } = await request<AssistantResponse>(
+          `/conversations/${encodeURIComponent(id)}/messages`,
+          { method: "POST", json: { content: text } },
+        )
+        const convId = id
+        setMessages((prev) => ({
+          ...prev,
+          [convId]: [...(prev[convId] ?? []), question, answer],
+        }))
+        touchConversation(convId, answer.createdAt)
+        return true
+      } catch (error) {
+        notify("error", errorMessage(error, "No se pudo enviar la pregunta."))
+        return false
+      } finally {
+        pendingRef.current = false
+        setPending(null)
       }
-
-      const exists =
-        conversationId !== null &&
-        conversationsRef.current.some((c) => c.id === conversationId)
-
-      let targetId: string
-      if (exists && conversationId !== null) {
-        targetId = conversationId
-        appendMessage(targetId, userMessage)
-      } else {
-        targetId = createId("chat")
-        const title =
-          text.replace(/\s+/g, " ").slice(0, TITLE_LENGTH).trim() ||
-          "Nueva conversación"
-        const conversation: Conversation = {
-          id: targetId,
-          title,
-          messages: [userMessage],
-          createdAt: now,
-          updatedAt: now,
-        }
-        updateConversations((prev) => [conversation, ...prev])
-      }
-
-      startGeneration(targetId)
-      return targetId
     },
-    [appendMessage, startGeneration, updateConversations],
+    [notify, touchConversation],
   )
-
-  const stopGeneration = useCallback(() => {
-    if (phaseRef.current === "idle") return
-    const generation = generationRef.current
-    const conversationId = generation?.conversationId ?? activeIdRef.current
-    const partial = generation?.text.trimEnd() ?? ""
-    clearTimers()
-    if (conversationId !== null) {
-      commitAssistant(conversationId, `${partial}${STOPPED_SUFFIX}`.trim())
-    }
-    finishGeneration()
-  }, [clearTimers, commitAssistant, finishGeneration])
 
   const setFeedback = useCallback(
-    (conversationId: string, messageId: string, value: Feedback) => {
-      updateConversations((prev) =>
-        prev.map((conversation) =>
-          conversation.id === conversationId
-            ? {
-                ...conversation,
-                messages: conversation.messages.map((message) =>
-                  message.id === messageId && message.role === "assistant"
-                    ? {
-                        ...message,
-                        feedback: message.feedback === value ? null : value,
-                      }
-                    : message,
-                ),
-              }
-            : conversation,
-        ),
-      )
+    async (conversationId: string, messageId: string, value: Feedback) => {
+      const apply = (feedback: Feedback) =>
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: (prev[conversationId] ?? []).map((m) =>
+            m.id === messageId ? { ...m, feedback } : m,
+          ),
+        }))
+      const previous =
+        messagesByConversation[conversationId]?.find((m) => m.id === messageId)?.feedback ?? null
+      const next = previous === value ? null : value
+      apply(next)
+      try {
+        await request(
+          `/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
+          { method: "PATCH", json: { feedback: next } },
+        )
+      } catch (error) {
+        apply(previous)
+        notify("error", errorMessage(error, "No se pudo guardar la valoración."))
+      }
     },
-    [updateConversations],
+    [messagesByConversation, notify],
+  )
+
+  const renameConversation = useCallback(
+    async (id: string, title: string) => {
+      try {
+        const updated = await request<Conversation>(`/conversations/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          json: { title },
+        })
+        setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)))
+        return true
+      } catch (error) {
+        notify("error", errorMessage(error, "No se pudo renombrar la conversación."))
+        return false
+      }
+    },
+    [notify],
+  )
+
+  const deleteConversation = useCallback(
+    async (id: string) => {
+      try {
+        await request(`/conversations/${encodeURIComponent(id)}`, { method: "DELETE" })
+        setConversations((prev) => prev.filter((c) => c.id !== id))
+        setMessages(({ [id]: _removed, ...rest }) => rest)
+        return true
+      } catch (error) {
+        notify("error", errorMessage(error, "No se pudo eliminar la conversación."))
+        return false
+      }
+    },
+    [notify],
   )
 
   const value = useMemo<ChatContextValue>(
     () => ({
       conversations,
-      streaming,
-      phase,
-      activeConversationId,
+      listStatus,
+      reloadConversations,
+      messagesByConversation,
+      loadMessages,
+      pending,
       sendMessage,
-      stopGeneration,
       setFeedback,
+      renameConversation,
+      deleteConversation,
     }),
     [
       conversations,
-      streaming,
-      phase,
-      activeConversationId,
+      listStatus,
+      reloadConversations,
+      messagesByConversation,
+      loadMessages,
+      pending,
       sendMessage,
-      stopGeneration,
       setFeedback,
+      renameConversation,
+      deleteConversation,
     ],
   )
 

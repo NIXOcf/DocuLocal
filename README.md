@@ -1,62 +1,153 @@
-# DocuLocal 🛡️
-**Plataforma RAG (Retrieval-Augmented Generation) Corporativa 100% Local**
+# DocuLocal
 
-DocuLocal es un sistema de gestión documental impulsado por Inteligencia Artificial. Su núcleo arquitectónico garantiza **"cero fugas de datos" (Zero Data Leaks)** procesando documentos confidenciales, embeddings y modelos de lenguaje (LLMs), asegurando la máxima privacidad y cumplimiento corporativo.
+**Asistente interno que responde las dudas de los trabajadores solo a partir de la documentación que sube la empresa, con citas verificables y control de acceso por nivel.**
 
----
+Proyecto del curso INGT1003 (Universidad Mayor). Repositorio: https://github.com/NIXOcf/DocuLocal
 
-## 🚀 Características Principales (Frontend - Hito 1)
+## Integrantes
 
-*   **Arquitectura SPA Fluida:** Construida con React y enrutamiento dinámico para una experiencia de usuario sin interrupciones.
-*   **Control de Acceso Basado en Roles (RBAC):**
-    *   *Perfil Empleado:* Acceso exclusivo al chat interactivo para consultas operativas.
-    *   *Perfil Administrador:* Acceso global, incluyendo el panel de gestión y subida de documentos.
-*   **Chat Corporativo Interactivo (Tipo Gemini):**
-    *   Simulación de streaming de respuestas (efecto máquina de escribir).
-    *   Trazabilidad de datos mediante insignias (badges) interactivas que muestran las fuentes documentales exactas citadas por la IA.
-    *   Sistema de recolección de feedback (Pulgar arriba/abajo) para métricas de calidad.
-*   **Gestión Documental Segura (AdminView):**
-    *   Zona de Drag & Drop nativa para indexación de archivos.
-    *   **Pre-filtrado por Metadatos:** Asignación de "Niveles de Acceso" (General, Jefatura, Gerencia) en el momento de la subida para garantizar una arquitectura *Zero Trust*.
-*   **Estándares de Industria:** Diseño corporativo estrictamente alineado con directrices de accesibilidad **WCAG 2.2** y principios de seguridad frontend **OWASP**.
+| Nombre | Usuario de GitHub |
+|---|---|
+| Eduardo Castillo | [NIXOcf](https://github.com/NIXOcf) |
+| Cristofer del Río | [Hydr6](https://github.com/Hydr6) |
+| Angelo D'Agostino | [angeloDAnchesco11](https://github.com/angeloDAnchesco11) |
+| René Jorquera | [renixx348](https://github.com/renixx348) |
 
----
+Los cuatro son colaboradores del repositorio.
 
-## 🛠️ Stack Tecnológico
+## Arquitectura
 
-### Frontend (Fase Actual)
-*   **Framework:** React (TypeScript) + Vite
-*   **Enrutamiento:** React Router DOM
-*   **Estilos:** Tailwind CSS v4
-*   **Componentes UI:** shadcn/ui + lucide-react
-*   **Persistencia (Prototipo):** LocalStorage API
+| Capa | Tecnología |
+|---|---|
+| Front end | React 19 + TypeScript + Vite (`http://localhost:5173`), Tailwind 4, shadcn/base-ui. Usa la API real; el token JWT vive en `sessionStorage`. |
+| Back end | Python 3.12 + FastAPI (`http://localhost:8000`, prefijo `/api/v1`), en capas controlador, servicio y repositorio. |
+| Base de datos | PostgreSQL 17 + pgvector en Docker (`pgvector/pgvector:pg17`), publicada solo en `127.0.0.1`. |
+| Embeddings y reranker | **Locales** (fastembed): `paraphrase-multilingual-mpnet-base-v2` y `jina-reranker-v2-base-multilingual`. |
+| LLM | API compatible con OpenAI, configurable en `.env`: **Groq** (`openai/gpt-oss-120b`, `gpt-oss-20b` y `llama-prompt-guard-2-86m`) o **llama.cpp local** (`backend/scripts/llama_local.ps1`). |
 
-### Backend & Datos (Fase Próxima - Hito 2)
-*   **API REST:** FastAPI (Python)
-*   **Base de Datos Relacional y Vectorial:** PostgreSQL + extensión `pgvector`
-*   **Motor RAG:** Arquitectura multicapa (Clean Architecture) con filtrado previo en base de datos.
-*   **Motor IA Local:** `llama.cpp` ejecutando modelos cuantizados (Llama 3 8B / Gemma) optimizados para GPU (8GB VRAM).
+Los documentos, la base de datos, los embeddings y el reranker quedan en la máquina en ambos modos. La diferencia está en el LLM, que se elige con `LLM_BASE_URL` en `.env`:
 
----
+| Modo | Configuración | Qué sale de la red |
+|---|---|---|
+| Nube (`groq`) | `LLM_BASE_URL` apunta a Groq (por defecto) | La pregunta y los fragmentos autorizados que se usan para responder viajan a Groq (EE. UU.) |
+| Local (`local`) | `LLM_BASE_URL=http://127.0.0.1:8081/v1` (llama.cpp, `backend/scripts/llama_local.ps1`) | Nada |
 
-## ⚙️ Instalación y Configuración (Desarrollo)
+`GET /api/v1/health` informa el modo activo en el campo `modo`. El front muestra un aviso de privacidad con la variante que corresponde.
 
-Asegúrate de tener instalado [Node.js](https://nodejs.org/) (versión 18 o superior).
+Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Se guarda una auditoría mínima de acciones de seguridad (fecha, usuario, acción y recurso; sin IP ni texto de preguntas) que se elimina a los 30 días, y el front muestra un aviso de privacidad informativo. Contrato y errores en [`docs/API.md`](docs/API.md).
 
-1. **Clonar el repositorio y acceder a la carpeta:**
-   ```bash
-   git clone https://github.com/NIXOcf/DocuLocal
-   cd doculocal-app
-Instalar las dependencias:
+## Requisitos previos
 
-Bash
-npm install
-Ejecutar el servidor de desarrollo:
+- Node.js 18 o superior
+- Python **3.12** (la versión probada; 3.13 y 3.14 resuelven las dependencias con paquetes binarios, pero no se probó que el sistema corra en ellas); en Windows, `winget install Python.Python.3.12`
+- Docker (con Docker Compose)
+- Hardware (medido en un Ryzen 5 4650G, 32 GB, Windows 10; sin GPU para la API): **16 GB de RAM recomendados, 8 GB como mínimo ajustado**. El back usa ~1,7 GB tras cargar los modelos y llegó a ~6,5 GB durante la batería de evaluación; Docker Desktop suma otros ~2 GB y PostgreSQL ~60 MB. **~6 GB de disco libre**: modelos de embeddings y reranker 2,2 GB (se descargan solos la primera vez, en la carpeta temporal del usuario), imagen de PostgreSQL 0,65 GB, `node_modules` 0,2 GB y el entorno Python. La indexación va en CPU (~11 s por PDF de demo) y no necesita GPU
+- Una clave de Groq (`GROQ_API_KEY`), salvo que uses el modo llama.cpp local
 
-Bash
-npm run dev
-Acceder a la aplicación:
-Abre tu navegador y dirígete a http://localhost:5173
+## Instalación (PowerShell, desde esta carpeta)
+
+```powershell
+# 1. Configuración: completar JWT_SECRET (mín. 32 caracteres aleatorios) y GROQ_API_KEY. No subas .env.
+Copy-Item .env.example .env
+
+# 2. Back end
+py -3.12 -m venv backend\.venv
+backend\.venv\Scripts\pip install -r backend\requirements.txt
+
+# 3. Front end
+corepack enable pnpm   # activa pnpm (o: npm i -g pnpm)
+pnpm install
+
+# 4. Base de datos (aplica db/schema.sql la primera vez)
+docker compose up -d db
+
+# 5. Datos de demo: usuarios y los PDF de docs/prueba (unos 2 min)
+backend\.venv\Scripts\python backend\scripts\seed.py
+```
+
+### Levantar
+
+```powershell
+.\levantar.ps1            # BD + back + front, y abre el navegador
+.\levantar.ps1 -Seed      # lo mismo, cargando antes los datos de demo
+.\levantar.ps1 -Detener   # apaga todo
+```
+
+O a mano, en dos terminales:
+
+```powershell
+backend\.venv\Scripts\python -m uvicorn app.main:app --app-dir backend --port 8000 --no-server-header
+pnpm run dev
+```
+
+Swagger en `http://localhost:8000/docs` si `ENABLE_DOCS=true` en `.env`. Salud: `http://localhost:8000/api/v1/health`.
+
+## Usuarios de demo
+
+Datos ficticios de la empresa AguaNube. Contraseña de todos: `DocuLocal2026!`
+
+| Correo | Rol | Nivel |
+|---|---|---|
+| `trabajador@aguanube.cl` | employee | 1 General |
+| `jefe@aguanube.cl` | employee | 2 Jefatura |
+| `gerente@aguanube.cl` | employee | 3 Gerencia |
+| `admin@aguanube.cl` | admin | 3 Gerencia |
+
+Rol y nivel son independientes. El **rol** (`employee` o `admin`) decide si se gestionan usuarios y documentos. El **nivel** (`1 General`, `2 Jefatura`, `3 Gerencia`) decide qué documentos se pueden consultar: se ve todo lo de nivel igual o inferior (y del propio departamento, si el documento lo tiene). El admin también chatea con su propio nivel.
+
+## API
+
+Contrato completo, formatos y códigos de error en [`docs/API.md`](docs/API.md). Colección Postman: [`postman/DocuLocal.postman_collection.json`](postman/DocuLocal.postman_collection.json).
+
+| Recurso | Endpoints (`/api/v1`) | Acceso |
+|---|---|---|
+| Salud | `GET /health` | pública |
+| Auth | `POST /auth/login`, `GET /auth/me` | pública / token |
+| Usuarios | `GET, POST /users`; `GET, PATCH, DELETE /users/{id}` | admin |
+| Documentos | `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` | token |
+| | `POST /documents` (PDF/DOCX/XLSX ≤ 20 MB, 202), `PATCH, DELETE /documents/{id}` | admin |
+| Fragmentos | `GET /chunks/{id}` | token (con permisos) |
+| Conversaciones | `GET, POST /conversations`; `GET, PATCH, DELETE /conversations/{id}` | token |
+| Mensajes | `GET, POST /conversations/{id}/messages`; `PATCH /conversations/{id}/messages/{messageId}` | token |
+
+## Pruebas y evaluación
+
+```powershell
+cd backend; .venv/Scripts/python -m pytest -q
+```
+
+Evaluación del RAG de extremo a extremo (usa la API en proceso, la BD con el seed y el LLM reales; verifica control de acceso, respuestas "no encontré" y citas esperadas), desde esta carpeta:
+
+```powershell
+backend\.venv\Scripts\python backend\scripts\eval_rag.py
+```
+
+Resultados de referencia: [`backend/scripts/eval_resultados.md`](backend/scripts/eval_resultados.md).
+
+## Estructura
+
+```
+DocuLocal/
+├── src/                 Front end (React + TypeScript)
+├── backend/
+│   ├── app/             api/v1, schemas, services (+ services/rag), repositories, core
+│   ├── tests/           Pruebas con pytest
+│   └── scripts/         seed.py, eval_rag.py, llama_local.ps1, benchmark/
+├── db/                  schema.sql y modelo de datos (ver db/README.md)
+├── postman/             Colección Postman
+├── docs/                Documentación (ver abajo) y datos de demo en prueba/
+├── docker-compose.yml   PostgreSQL 17 + pgvector
+├── levantar.ps1         Levanta BD, back y front
+└── .env.example         Variables de entorno de ejemplo
+```
+
+## Documentos
+
+- [`docs/API.md`](docs/API.md): contrato de la API
+- [`docs/DocuLocal_Hito2_Documento_Tecnico.pdf`](docs/DocuLocal_Hito2_Documento_Tecnico.pdf): documento técnico del Hito 2 (se sube al repositorio en la fecha interna de entrega).
+- [`docs/DocuLocal_INF.pdf`](docs/DocuLocal_INF.pdf): informe del Hito 1
+- [`backend/README.md`](backend/README.md) y [`db/README.md`](db/README.md)
+- [`docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf)
 
 ## Declaración de uso de IA generativa
 
@@ -67,19 +158,19 @@ Este proyecto **utilizó Inteligencia Artificial Generativa (IAG) en su desarrol
 | Herramienta | Uso |
 |---|---|
 | Claude (Anthropic) | Arquitectura, redacción de prompts, análisis de auditorías, decisiones técnicas y documentación |
-| Claude Code (Anthropic) | Generación y modificación de código, configuración de dependencias, verificación (tipos, build, lint) y evolución a v2 |
+| Claude Code (Anthropic) | Generación y modificación de código, configuración de dependencias, verificación (tipos, build, lint, pruebas) y evolución del Hito 1 al Hito 2 |
 | Cline + modelo local | Intento inicial de construcción y auditoría de código |
 
 ### Alcance
 
-- **Código:** estructura del proyecto, componentes (`Sidebar`, `ChatView`, `AdminView`, login, diálogo de citas), enrutamiento, roles simulados, persistencia local, simulación de streaming, feedback y aplicación de directrices OWASP/WCAG.
+- **Código:** back end (API, capas, pipeline RAG, seguridad), esquema de base de datos, pruebas, componentes del front (`Sidebar`, `ChatView`, `AdminView`, login, diálogo de citas, aviso de privacidad), conexión front-back y aplicación de directrices OWASP/WCAG.
 - **Documentación:** plan de arquitectura, justificación de decisiones técnicas, informe de cumplimiento y la declaración completa de uso de IAG.
 
 ### Limitaciones
 
 - El código generado por IA puede contener errores; se verificó mediante compilación, lint y pruebas manuales, **sin una auditoría formal**.
 - El cumplimiento de OWASP y WCAG 2.2 es una directriz de desarrollo, **no una certificación**.
-- El control de roles (RBAC) es **simulado en el cliente** y no es una medida de seguridad real. En producción debe aplicarse en el backend.
+- Los controles de acceso se aplican en el backend (JWT, nivel y departamento dentro del SQL), pero no se realizó una auditoría de seguridad formal.
 - Todos los datos son ficticios y no se compartieron credenciales ni información confidencial con las herramientas de IA.
 
-📄 La declaración completa está en [`docs/Docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](Docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf).
+La declaración completa está en [`docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf).
