@@ -55,7 +55,8 @@ py -3.12 -m venv backend\.venv
 backend\.venv\Scripts\pip install -r backend\requirements.txt
 
 # 3. Front end
-npm install
+corepack enable pnpm   # activa pnpm (o: npm i -g pnpm)
+pnpm install
 
 # 4. Base de datos (aplica db/schema.sql la primera vez)
 docker compose up -d db
@@ -76,7 +77,7 @@ O a mano, en dos terminales:
 
 ```powershell
 backend\.venv\Scripts\python -m uvicorn app.main:app --app-dir backend --port 8000 --no-server-header
-npm run dev
+pnpm run dev
 ```
 
 Swagger en `http://localhost:8000/docs` si `ENABLE_DOCS=true` en `.env`. Salud: `http://localhost:8000/api/v1/health`.
@@ -143,7 +144,7 @@ DocuLocal/
 ## Documentos
 
 - [`docs/API.md`](docs/API.md): contrato de la API
-- Documento técnico del Hito 2 (PDF): se entrega en `docs/` al cierre del hito.
+- [`docs/DocuLocal_Hito2_Documento_Tecnico.pdf`](docs/DocuLocal_Hito2_Documento_Tecnico.pdf): documento técnico del Hito 2 (se sube al repositorio en la fecha interna de entrega).
 - [`docs/DocuLocal_INF.pdf`](docs/DocuLocal_INF.pdf): informe del Hito 1
 - [`backend/README.md`](backend/README.md) y [`db/README.md`](db/README.md)
 - [`docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf)
