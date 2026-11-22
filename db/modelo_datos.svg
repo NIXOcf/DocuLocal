@@ -1,0 +1,247 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1110 1000" width="1110" height="1000"><defs><marker id="ah-0a5e66" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0a5e66"/></marker><marker id="ah-b9812a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b9812a"/></marker><marker id="ah-5b6573" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5b6573"/></marker><marker id="ah-0e8b8c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0e8b8c"/></marker><marker id="ah-13203c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#13203c"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><rect x="34" y="20" width="320" height="334" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="34" y="20" width="320" height="40" rx="4" fill="#13203c"/>
+<rect x="34" y="54" width="320" height="6" fill="#13203c"/>
+<text x="46" y="47" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">users</text>
+<text x="44" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="100" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="344" y="81" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="35" y="89" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="44" y="107" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0a5e66" font-weight="bold" text-anchor="start">UK</text>
+<text x="100" y="107" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">email</text>
+<text x="344" y="107" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">citext</text>
+<text x="100" y="133" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">password_hash</text>
+<text x="344" y="133" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text bcrypt</text>
+<rect x="35" y="141" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="159" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">display_name</text>
+<text x="344" y="159" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="100" y="185" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">role</text>
+<text x="344" y="185" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">employee|admin</text>
+<rect x="35" y="193" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="211" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">access_level</text>
+<text x="344" y="211" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">smallint 1..3</text>
+<text x="100" y="237" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">department</text>
+<text x="344" y="237" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text NULL</text>
+<rect x="35" y="245" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="263" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">is_active</text>
+<text x="344" y="263" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">boolean</text>
+<text x="100" y="289" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">password_changed_at</text>
+<text x="344" y="289" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<rect x="35" y="297" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="315" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="344" y="315" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<text x="100" y="341" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">updated_at</text>
+<text x="344" y="341" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<rect x="404" y="20" width="320" height="438" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="404" y="20" width="320" height="40" rx="4" fill="#13203c"/>
+<rect x="404" y="54" width="320" height="6" fill="#13203c"/>
+<text x="416" y="47" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">documents</text>
+<text x="414" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="470" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="714" y="81" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="405" y="89" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="107" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">original_name</text>
+<text x="714" y="107" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="470" y="133" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">stored_name</text>
+<text x="714" y="133" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="405" y="141" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="159" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">mime_type</text>
+<text x="714" y="159" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="470" y="185" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">size_bytes</text>
+<text x="714" y="185" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">bigint</text>
+<rect x="405" y="193" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="414" y="211" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0a5e66" font-weight="bold" text-anchor="start">UK</text>
+<text x="470" y="211" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">checksum</text>
+<text x="714" y="211" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">char(64)</text>
+<text x="470" y="237" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">access_level</text>
+<text x="714" y="237" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">smallint 1..3</text>
+<rect x="405" y="245" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="263" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">department</text>
+<text x="714" y="263" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text NULL</text>
+<text x="470" y="289" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">status</text>
+<text x="714" y="289" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text, 3 estados</text>
+<rect x="405" y="297" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="315" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">error_message</text>
+<text x="714" y="315" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="470" y="341" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">page_count</text>
+<text x="714" y="341" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer</text>
+<rect x="405" y="349" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="367" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">chunk_count</text>
+<text x="714" y="367" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer</text>
+<text x="414" y="393" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="470" y="393" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">uploaded_by</text>
+<text x="714" y="393" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid NULL</text>
+<rect x="405" y="401" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="419" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="714" y="419" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<text x="470" y="445" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">updated_at</text>
+<text x="714" y="445" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<rect x="774" y="20" width="320" height="230" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="774" y="20" width="320" height="40" rx="4" fill="#0a5e66"/>
+<rect x="774" y="54" width="320" height="6" fill="#0a5e66"/>
+<text x="786" y="47" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">chunks</text>
+<text x="784" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="840" y="81" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="1084" y="81" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="775" y="89" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="784" y="107" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="840" y="107" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">document_id</text>
+<text x="1084" y="107" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<text x="784" y="133" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0a5e66" font-weight="bold" text-anchor="start">UK*</text>
+<text x="840" y="133" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">chunk_index</text>
+<text x="1084" y="133" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer</text>
+<rect x="775" y="141" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="840" y="159" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">page</text>
+<text x="1084" y="159" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer NULL</text>
+<text x="840" y="185" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">content</text>
+<text x="1084" y="185" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="775" y="193" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="840" y="211" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">embedding</text>
+<text x="1084" y="211" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">vector(768)</text>
+<text x="840" y="237" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">tsv</text>
+<text x="1084" y="237" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">tsvector gen.</text>
+<rect x="34" y="520" width="320" height="178" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="34" y="520" width="320" height="40" rx="4" fill="#0e8b8c"/>
+<rect x="34" y="554" width="320" height="6" fill="#0e8b8c"/>
+<text x="46" y="547" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">conversations</text>
+<text x="44" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="100" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="344" y="581" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="35" y="589" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="44" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="100" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">user_id</text>
+<text x="344" y="607" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<text x="100" y="633" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">title</text>
+<text x="344" y="633" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">varchar(120)</text>
+<rect x="35" y="641" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="659" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="344" y="659" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<text x="100" y="685" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">updated_at</text>
+<text x="344" y="685" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<rect x="404" y="520" width="320" height="230" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="404" y="520" width="320" height="40" rx="4" fill="#0e8b8c"/>
+<rect x="404" y="554" width="320" height="6" fill="#0e8b8c"/>
+<text x="416" y="547" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">messages</text>
+<text x="414" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="470" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="714" y="581" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="405" y="589" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="414" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="470" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">conversation_id</text>
+<text x="714" y="607" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<text x="470" y="633" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">role</text>
+<text x="714" y="633" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">user|assistant</text>
+<rect x="405" y="641" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="659" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">content</text>
+<text x="714" y="659" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="470" y="685" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">feedback</text>
+<text x="714" y="685" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">up|down NULL</text>
+<rect x="405" y="693" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="470" y="711" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">grounded</text>
+<text x="714" y="711" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">boolean NULL</text>
+<text x="470" y="737" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="714" y="737" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<rect x="774" y="520" width="320" height="256" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="774" y="520" width="320" height="40" rx="4" fill="#0e8b8c"/>
+<rect x="774" y="554" width="320" height="6" fill="#0e8b8c"/>
+<text x="786" y="547" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">message_sources</text>
+<text x="784" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK,FK</text>
+<text x="840" y="581" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">message_id</text>
+<text x="1084" y="581" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid</text>
+<rect x="775" y="589" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="784" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="840" y="607" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">ref_number</text>
+<text x="1084" y="607" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer</text>
+<text x="784" y="633" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="840" y="633" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">chunk_id</text>
+<text x="1084" y="633" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid NULL</text>
+<rect x="775" y="641" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="784" y="659" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="840" y="659" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">document_id</text>
+<text x="1084" y="659" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid NULL</text>
+<text x="840" y="685" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">filename</text>
+<text x="1084" y="685" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="775" y="693" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="840" y="711" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">page</text>
+<text x="1084" y="711" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">integer NULL</text>
+<text x="840" y="737" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">score</text>
+<text x="1084" y="737" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">real</text>
+<rect x="775" y="745" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="840" y="763" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">snippet</text>
+<text x="1084" y="763" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="34" y="740" width="320" height="230" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="34" y="740" width="320" height="40" rx="4" fill="#b9812a"/>
+<rect x="34" y="774" width="320" height="6" fill="#b9812a"/>
+<text x="46" y="767" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">audit_log</text>
+<text x="44" y="801" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
+<text x="100" y="801" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
+<text x="344" y="801" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">bigserial</text>
+<rect x="35" y="809" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="44" y="827" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#0e8b8c" font-weight="bold" text-anchor="start">FK</text>
+<text x="100" y="827" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">user_id</text>
+<text x="344" y="827" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">uuid NULL</text>
+<text x="100" y="853" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">action</text>
+<text x="344" y="853" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="35" y="861" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="879" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">resource</text>
+<text x="344" y="879" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="100" y="905" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">resource_id</text>
+<text x="344" y="905" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<rect x="35" y="913" width="318" height="26" rx="0" fill="#f2f5f9"/>
+<text x="100" y="931" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">detail</text>
+<text x="344" y="931" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">jsonb</text>
+<text x="100" y="957" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="344" y="957" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<path d="M 354 71 L 379 71 L 379 383 L 404 383" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="354" cy="71" r="4.5" fill="#0e8b8c"/>
+<circle cx="404" cy="383" r="4.5" fill="#0e8b8c"/>
+<text x="366" y="63" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
+<text x="394" y="375" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
+<text x="370" y="400" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="end" font-style="italic">SET NULL</text>
+<path d="M 724 71 L 749 71 L 749 97 L 774 97" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="724" cy="71" r="4.5" fill="#0e8b8c"/>
+<circle cx="774" cy="97" r="4.5" fill="#0e8b8c"/>
+<text x="736" y="63" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
+<text x="764" y="89" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
+<text x="749" y="128" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic">CASCADE</text>
+<path d="M 194 354 L 194 520" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="194" cy="354" r="4.5" fill="#0e8b8c"/>
+<circle cx="194" cy="520" r="4.5" fill="#0e8b8c"/>
+<text x="206" y="374" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">1</text>
+<text x="206" y="512" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">N</text>
+<text x="206" y="450" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="start" font-style="italic">CASCADE</text>
+<path d="M 354 571 L 379 571 L 379 597 L 404 597" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="354" cy="571" r="4.5" fill="#0e8b8c"/>
+<circle cx="404" cy="597" r="4.5" fill="#0e8b8c"/>
+<text x="366" y="563" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
+<text x="394" y="589" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
+<text x="379" y="650" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic">CASCADE</text>
+<path d="M 724 571 L 774 571" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="724" cy="571" r="4.5" fill="#0e8b8c"/>
+<circle cx="774" cy="571" r="4.5" fill="#0e8b8c"/>
+<text x="736" y="563" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
+<text x="764" y="563" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
+<text x="749" y="597" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic">CASCADE</text>
+<path d="M 1030 250 L 1030 520" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="1030" cy="250" r="4.5" fill="#0e8b8c"/>
+<circle cx="1030" cy="520" r="4.5" fill="#0e8b8c"/>
+<text x="1042" y="272" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">1</text>
+<text x="1042" y="512" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">N</text>
+<text x="1042" y="400" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="start" font-style="italic">SET NULL</text>
+<path d="M 600 458 L 600 490 L 900 490 L 900 520" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="600" cy="458" r="4.5" fill="#0e8b8c"/>
+<circle cx="900" cy="520" r="4.5" fill="#0e8b8c"/>
+<text x="612" y="478" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">1</text>
+<text x="912" y="512" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">N</text>
+<text x="750" y="482" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic">SET NULL</text>
+<path d="M 34 71 L 12 71 L 12 817 L 34 817" fill="none" stroke="#0e8b8c" stroke-width="2"/>
+<circle cx="34" cy="71" r="4.5" fill="#0e8b8c"/>
+<circle cx="34" cy="817" r="4.5" fill="#0e8b8c"/>
+<text x="23" y="63" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
+<text x="23" y="809" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
+<text x="27" y="470" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic" transform="rotate(-90 27 470)">SET NULL</text>
+<rect x="404" y="800" width="690" height="170" rx="4" fill="#f2f5f9"/>
+<text x="422" y="830" font-family="Calibri, Carlito, Arial, sans-serif" font-size="18" fill="#13203c" font-weight="bold" text-anchor="start">Leyenda</text>
+<text x="422" y="858" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">PK clave primaria · FK foránea · UK única · UK* única con document_id</text>
+<text x="422" y="883" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">1 — N: uno a muchos; en cursiva, la acción ON DELETE de la clave foránea.</text>
+<text x="422" y="908" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">status: Procesando | Indexado | Error. tsv: columna generada en español.</text>
+<text x="422" y="933" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">Índices: HNSW (embedding) y GIN (tsv) en chunks; B-tree en las FK y fechas.</text></svg>

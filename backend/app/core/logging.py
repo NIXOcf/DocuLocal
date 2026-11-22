@@ -18,16 +18,20 @@ def sanitize(text: str) -> str:
     return _CONTROL.sub(lambda m: m.group().encode("unicode_escape").decode(), text)
 
 
-def new_request_ctx(incoming: str | None) -> dict:
+def new_request_ctx(incoming: str | None, ip: str | None = None) -> dict:
     """Respeta un X-Request-ID válido (≤64, alfanumérico o guion); si no, genera uno."""
     rid = incoming if incoming and _VALID_ID.fullmatch(incoming) else secrets.token_hex(4)
-    ctx = {"request_id": rid, "user_id": None}
+    ctx = {"request_id": rid, "user_id": None, "ip": ip}
     _ctx.set(ctx)
     return ctx
 
 
 def current_request_id() -> str:
     return (_ctx.get() or {}).get("request_id", "-")
+
+
+def current_ip() -> str | None:
+    return (_ctx.get() or {}).get("ip")
 
 
 def set_user_id(user_id: str) -> None:

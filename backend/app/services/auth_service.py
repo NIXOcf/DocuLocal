@@ -111,9 +111,8 @@ def login(email: str, password: str, client_ip: str | None = None) -> LoginOut:
     user = user_repository.get_by_email(email)
     valid = verify_password(password, user["password_hash"] if user else _DUMMY_HASH)
     if user is None or not valid:
-        # sin el correo completo en la auditoría: user_id si existe, si no el correo enmascarado
-        audit_service.record(str(user["id"]) if user else None, "auth.login_failed", "user",
-                             **({} if user else {"email": mask_email(email)}))
+        # sin correo en la auditoría (Ley 21.719): user_id si existe; la IP y el request_id los agrega record()
+        audit_service.record(str(user["id"]) if user else None, "auth.login_failed", "user")
         logger.warning("Login fallido motivo=credenciales email=%s", mask_email(email))
         raise Unauthorized("Correo o contraseña incorrectos.", "credenciales_invalidas")
     if not user["is_active"]:

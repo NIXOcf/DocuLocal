@@ -33,7 +33,7 @@ def create_user(actor: dict, data: UserCreate) -> UserOut:
         )
     except user_repository.DuplicateEmail:
         raise Conflict("Ya existe un usuario con ese correo.", "email_duplicado") from None
-    audit_service.record(str(actor["id"]), "user.create", "user", str(row["id"]), email=data.email)
+    audit_service.record(str(actor["id"]), "user.create", "user", str(row["id"]))
     return to_user_out(row)
 
 

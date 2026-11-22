@@ -2,6 +2,8 @@
 
 PostgreSQL 17 con pgvector, citext y pgcrypto. El esquema completo está en `schema.sql`.
 
+![Modelo de datos](modelo_datos.png)
+
 ```mermaid
 erDiagram
     users ||--o{ documents : "sube (uploaded_by)"

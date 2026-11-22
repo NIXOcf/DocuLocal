@@ -6,6 +6,185 @@
   },
   "item": [
     {
+      "name": "Demo Hito 2 (CRUD en vivo)",
+      "description": "Ejecutar antes 'Login admin' (carpeta Auth) para guardar {{token}}. Ciclo completo crear, leer, actualizar y borrar un usuario; no usa el LLM.",
+      "item": [
+        {
+          "name": "1. Crear usuario (POST /users, 201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"Clave12345\",\n  \"displayName\": \"Usuario Demo\",\n  \"role\": \"employee\",\n  \"accessLevel\": \"General\",\n  \"department\": \"General\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"demoEmail\", \"demo.\" + Date.now() + \"@aguanube.cl\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Devuelve id y Location\", () => { pm.expect(j.id).to.be.a(\"string\"); pm.expect(pm.response.headers.get(\"Location\")).to.include(j.id); });",
+                  "pm.collectionVariables.set(\"demoUserId\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Leer usuario (GET /users/{id}, 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{demoUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{demoUserId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"El usuario creado quedó guardado\", () => { pm.expect(j.id).to.eql(pm.collectionVariables.get(\"demoUserId\")); pm.expect(j.email).to.eql(pm.collectionVariables.get(\"demoEmail\")); pm.expect(j.accessLevel).to.eql(\"General\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Actualizar usuario (PATCH /users/{id}, 200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{demoUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{demoUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Usuario Demo Editado\",\n  \"accessLevel\": \"Jefatura\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Cambios aplicados\", () => { const j = pm.response.json(); pm.expect(j.accessLevel).to.eql(\"Jefatura\"); pm.expect(j.displayName).to.eql(\"Usuario Demo Editado\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Borrar usuario (DELETE /users/{id}, 204)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{demoUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{demoUserId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 204\", () => pm.response.to.have.status(204));",
+                  "pm.collectionVariables.unset(\"demoUserId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Auth",
       "item": [
         {
@@ -1480,6 +1659,14 @@
     },
     {
       "key": "chunkId",
+      "value": ""
+    },
+    {
+      "key": "demoUserId",
+      "value": ""
+    },
+    {
+      "key": "demoEmail",
       "value": ""
     }
   ]
