@@ -135,10 +135,13 @@ El empleado solo ve los documentos `Indexado` que su nivel/departamento permiten
 {
   "id": "…", "role": "assistant",
   "content": "La jornada ordinaria es de **42 horas semanales**[1].",
-  "sources": [ { "id": "chunk-uuid", "ref": 1, "filename": "07_AguaNube_Contrato_de_Trabajo_Tipo.pdf",
-                 "documentId": "…", "page": 1, "score": 0.56, "snippet": "…La jornada ordinaria será de [42] horas…" } ],
+  "sources": [ { "id": "chunk-uuid", "ref": 1,
+                 "filename": "07_AguaNube_Contrato_de_Trabajo_Tipo.pdf",
+                 "documentId": "…", "page": 1, "score": 0.56,
+                 "snippet": "…La jornada ordinaria será de [42] horas…" } ],
   "feedback": null, "grounded": true, "createdAt": 1795289145236,
-  "question": { "id": "…", "role": "user", "content": "¿Cuántas horas…?", "sources": [], "feedback": null, "grounded": null, "createdAt": 1795289135788 }
+  "question": { "id": "…", "role": "user", "content": "¿Cuántas horas…?", "sources": [],
+                "feedback": null, "grounded": null, "createdAt": 1795289135788 }
 }
 ```
 - `sources` contiene solo los fragmentos efectivamente citados, renumerados `1..n` según su aparición en el texto (`[n]`). `id` es el id del fragmento (`GET /chunks/{id}`) o `null` si el documento se borró después.
