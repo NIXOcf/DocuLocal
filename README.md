@@ -8,10 +8,12 @@ Proyecto del curso INGT1003 (Universidad Mayor). Repositorio: https://github.com
 
 | Nombre | Usuario de GitHub |
 |---|---|
-| Eduardo Castillo | [PENDIENTE: usuario de GitHub] |
-| Cristofer del Río | [PENDIENTE: usuario de GitHub] |
-| Angelo D'Agostino | [PENDIENTE: usuario de GitHub] |
-| René Jorquera | [PENDIENTE: usuario de GitHub] |
+| Eduardo Castillo | [NIXOcf](https://github.com/NIXOcf) |
+| Cristofer del Río | [Hydr6](https://github.com/Hydr6) |
+| Angelo D'Agostino | [angeloDAnchesco11](https://github.com/angeloDAnchesco11) |
+| René Jorquera | [renixx348](https://github.com/renixx348) |
+
+Los cuatro son colaboradores del repositorio.
 
 ## Arquitectura
 
@@ -32,7 +34,7 @@ Los documentos, la base de datos, los embeddings y el reranker quedan en la máq
 
 `GET /api/v1/health` informa el modo activo en el campo `modo`. El front muestra un aviso de privacidad con la variante que corresponde.
 
-Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Detalle en [`docs/Hito2_Diseno_Backend.md`](docs/Hito2_Diseno_Backend.md).
+Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Se guarda una auditoría mínima de acciones de seguridad (fecha, usuario, acción y recurso; sin IP ni texto de preguntas) que se elimina a los 30 días, y el front muestra un aviso de privacidad informativo. Detalle en [`docs/Hito2_Diseno_Backend.md`](docs/Hito2_Diseno_Backend.md).
 
 ## Requisitos previos
 
@@ -147,7 +149,6 @@ DocuLocal/
 - [`docs/DocuLocal_INF.pdf`](docs/DocuLocal_INF.pdf): informe del Hito 1
 - [`backend/README.md`](backend/README.md) y [`db/README.md`](db/README.md)
 - [`docs/Declaración de uso de Inteligencia Artificial Generativa.pdf`](docs/Declaración%20de%20uso%20de%20Inteligencia%20Artificial%20Generativa.pdf)
-- Video de demostración: `[enlace pendiente]`
 
 ## Declaración de uso de IA generativa
 
@@ -158,12 +159,12 @@ Este proyecto **utilizó Inteligencia Artificial Generativa (IAG) en su desarrol
 | Herramienta | Uso |
 |---|---|
 | Claude (Anthropic) | Arquitectura, redacción de prompts, análisis de auditorías, decisiones técnicas y documentación |
-| Claude Code (Anthropic) | Generación y modificación de código, configuración de dependencias, verificación (tipos, build, lint) y evolución a v2 |
+| Claude Code (Anthropic) | Generación y modificación de código, configuración de dependencias, verificación (tipos, build, lint, pruebas) y evolución del Hito 1 al Hito 2 |
 | Cline + modelo local | Intento inicial de construcción y auditoría de código |
 
 ### Alcance
 
-- **Código:** estructura del proyecto, componentes (`Sidebar`, `ChatView`, `AdminView`, login, diálogo de citas), enrutamiento, roles simulados, persistencia local, simulación de streaming, feedback y aplicación de directrices OWASP/WCAG.
+- **Código:** back end (API, capas, pipeline RAG, seguridad), esquema de base de datos, pruebas, componentes del front (`Sidebar`, `ChatView`, `AdminView`, login, diálogo de citas, aviso de privacidad), conexión front-back y aplicación de directrices OWASP/WCAG.
 - **Documentación:** plan de arquitectura, justificación de decisiones técnicas, informe de cumplimiento y la declaración completa de uso de IAG.
 
 ### Limitaciones

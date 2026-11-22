@@ -30,10 +30,6 @@ def current_request_id() -> str:
     return (_ctx.get() or {}).get("request_id", "-")
 
 
-def current_ip() -> str | None:
-    return (_ctx.get() or {}).get("ip")
-
-
 def set_user_id(user_id: str) -> None:
     ctx = _ctx.get()
     if ctx is not None:

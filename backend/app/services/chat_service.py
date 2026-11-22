@@ -74,7 +74,6 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
     first_question = message_repository.count(conversation_id) == 0
 
     stages: dict = {}
-    logger.debug("Pregunta recibida: %r", question[:120])
     t_guard = time.perf_counter()
     score = prompt_injection_score(question)
     stages["guard"] = round((time.perf_counter() - t_guard) * 1000)
