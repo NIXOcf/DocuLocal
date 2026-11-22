@@ -30,11 +30,9 @@ Con la opción activa: http://localhost:8000/docs · salud: http://localhost:800
 
 `JWT_SECRET` debe tener al menos 32 caracteres (la API no arranca si es más corto).
 
-### Migraciones de la BD
+### Esquema de la BD
 
-`db/schema.sql` crea todo desde cero. Para una BD ya existente, aplicar los archivos de `db/migrations/` (idempotentes), por ejemplo:
-`docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/001_password_changed_at.sql`
-(`001`: columna `users.password_changed_at`; los tokens emitidos antes de un cambio de contraseña dejan de valer).
+`db/schema.sql` crea todo desde cero y empieza con `DROP TABLE`: solo se ejecuta al crear el volumen. Para reiniciar la BD de demo, `docker compose down -v` y `docker compose up -d db`, y luego `seed.py`.
 PostgreSQL solo se publica en `127.0.0.1` (`docker-compose.yml`).
 
 Para empezar con la BD limpia: `docker compose down -v && docker compose up -d db` y repetir el seed.

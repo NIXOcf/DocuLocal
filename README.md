@@ -132,7 +132,7 @@ DocuLocal/
 │   ├── app/             api/v1, schemas, services (+ services/rag), repositories, core
 │   ├── tests/           Pruebas con pytest
 │   └── scripts/         seed.py, eval_rag.py, llama_local.ps1, benchmark/
-├── db/                  schema.sql y migrations/ (ver db/README.md)
+├── db/                  schema.sql y modelo de datos (ver db/README.md)
 ├── postman/             Colección Postman
 ├── docs/                Documentación (ver abajo) y datos de demo en prueba/
 ├── docker-compose.yml   PostgreSQL 17 + pgvector
