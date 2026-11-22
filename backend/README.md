@@ -68,14 +68,14 @@ una fuga de acceso. Colección Postman con una carpeta "Demo en vivo": `postman/
 |---|---|---|
 | Login: fallos por (IP, correo) | 5 en 15 min | 429 `demasiados_intentos` + `Retry-After` |
 | Login: fallos por IP (todos los correos) | 20 en 15 min | 429 `demasiados_intentos` + `Retry-After` |
-| Login: intentos por cuenta (todas las IP) | desde el 6.º en 15 min: espera `min(2^(n-5), 8)` s antes de verificar | nunca 429 |
+| Login: turnos por cuenta (todas las IP) | desde el 6.º intento en 15 min, cada intento ocupa un turno separado por `min(2^(n-5), 8)` s; ningún hilo espera más de 8 s | 429 `demasiados_intentos` + `Retry-After` si el turno quedaría a más de 8 s |
 | Preguntas al chat | 10 por minuto por usuario | 429 `demasiadas_consultas` + `Retry-After` |
 | Cuerpo de la petición | 64 KB; `POST /documents`: `MAX_UPLOAD_MB` + 1 MB (se corta aunque falte o mienta `Content-Length`) | 413 `cuerpo_demasiado_grande` / `archivo_demasiado_grande` |
 | Subidas | firma real (`%PDF-`, ZIP con `word/document.xml` o `xl/workbook.xml`); ≤200 MB descomprimidos y proporción ≤100 por entrada | 415 `tipo_no_coincide` / `archivo_sospechoso` |
 
 Los contadores viven en memoria de un solo proceso (con varias instancias, usar Redis). La IP es `request.client.host`:
 detrás de un proxy hay que configurar uvicorn con `--proxy-headers`/`--forwarded-allow-ips` para ver la IP real.
-El límite por cuenta no bloquea (así un atacante no puede dejar fuera a un usuario legítimo): solo retrasa; mitigación futura: CAPTCHA.
+Trade-off del turno por cuenta: durante un ataque a una cuenta, el usuario legítimo también puede recibir 429 en ella (no hay bloqueo permanente: el turno se libera solo y un login exitoso limpia la cuenta); mitigación futura: MFA o CAPTCHA.
 Todas las respuestas (salvo `/docs` y `/redoc`) llevan `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` y una CSP restrictiva.
 Las fuentes de mensajes viejos se muestran según el acceso **actual** del usuario ("Documento no disponible" si ya no lo ve),
 y esas respuestas no se envían al LLM como historial. La pregunta se guarda junto con su respuesta (si el LLM falla, no queda guardada).
@@ -87,7 +87,7 @@ backend/app/
   api/v1/          Controladores: parsean HTTP, llaman a un servicio, fijan el código de estado (sin lógica ni SQL)
   schemas/         DTOs Pydantic: contrato de entrada/salida (camelCase, lista blanca de campos)
   services/        Negocio: reglas, autorización, orquestación (no importa fastapi)
-    rag/           Pipeline RAG: parsing, chunking, embeddings, llm_client, query_planner, retriever, reranker, generator
+    rag/           Pipeline RAG: parsing, chunking, ingestion, embeddings, llm_client, query_planner, retriever, reranker, generator
   repositories/    Único lugar con SQL (psycopg 3, sin ORM)
   core/            config (.env), seguridad (JWT/bcrypt), errores (AppError), dependencias (usuario actual)
 backend/scripts/   seed.py y eval_rag.py
@@ -98,10 +98,10 @@ backend/tests/     pruebas unitarias
 
 1. `api/v1/conversations.py::post_message`: valida el cuerpo con `schemas.conversation.MessageCreate` (1–2000 caracteres), obtiene al usuario con la dependencia `CurrentUser` (`core/deps.py`, que verifica el JWT y que siga activo) y llama a `conversation_service.post_message`.
 2. `services/conversation_service.py`: comprueba que la conversación es del usuario (`conversation_repository.get_owned`, si no 404) y el límite de 100 mensajes (409); delega en `chat_service.answer`.
-3. `services/chat_service.py`: lee el historial (`message_repository`) y guarda la pregunta; el guard anti-inyección (`rag/llm_client.prompt_injection_score`) puede bloquearla; luego `rag/query_planner` (condensa y planifica) y `rag/retriever`.
+3. `services/chat_service.py`: lee el historial (`message_repository`) y lee el historial visible para el usuario (sin respuestas con fuentes que ya no puede ver); el guard anti-inyección (`rag/llm_client.prompt_injection_score`) puede bloquear la pregunta; luego `rag/query_planner` (condensa y planifica) y `rag/retriever`.
 4. `rag/retriever.py`: embebe las subconsultas (`rag/embeddings`) y llama a `chunk_repository.search_vector` / `search_text`, cuyo SQL une `chunks` con `documents` y aplica `visibility_clause()` **en el WHERE**: nivel, departamento y estado `Indexado`. Fusiona con RRF, reordena con `rag/reranker`, aplica umbral y diversidad y añade el fragmento vecino. Si no queda nada, responde "No encontré información…" sin llamar al LLM.
 5. `rag/generator.py`: pide la respuesta a Groq con el contexto numerado y verifica las citas `[n]`; `chat_service` deja solo las fuentes citadas y las renumera.
-6. `message_repository` guarda la respuesta y las fuentes (`message_sources`), `conversation_repository.touch` actualiza fecha y título, `audit_service` registra la consulta. El controlador devuelve 201.
+6. `message_repository.insert_exchange` guarda la pregunta, la respuesta y las fuentes (`message_sources`) juntas en una sola transacción (si el LLM falló, no se guardó nada y reintentar no duplica la pregunta); `conversation_repository.touch` actualiza fecha y título, `audit_service` registra la consulta. El controlador devuelve 201.
 
 ## Fallas frecuentes
 
