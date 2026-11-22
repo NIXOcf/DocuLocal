@@ -21,7 +21,7 @@ class RequestContextMiddleware:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         client = scope.get("client")
-        ctx = new_request_ctx(Headers(scope=scope).get(HEADER), client[0] if client else None)
+        ctx = new_request_ctx(Headers(scope=scope).get(HEADER))
         started = time.perf_counter()
         status = 500
         logged = False
@@ -34,8 +34,8 @@ class RequestContextMiddleware:
             path = scope["path"]
             ms = round((time.perf_counter() - started) * 1000)
             level = logging.DEBUG if path.endswith("/health") else logging.INFO  # el front consulta la salud a menudo
-            logger.log(level, "%s %s status=%s ms=%d user_id=%s ip=%s",
-                       scope["method"], path, status, ms, ctx["user_id"] or "-", ctx["ip"] or "-")
+            logger.log(level, "%s %s status=%s ms=%d user_id=%s",
+                       scope["method"], path, status, ms, ctx["user_id"] or "-")
 
         async def send_wrapper(message):
             nonlocal status

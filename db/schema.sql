@@ -95,7 +95,6 @@ CREATE TABLE audit_log (
     action      text NOT NULL,
     resource    text NOT NULL,
     resource_id text,
-    detail      jsonb NOT NULL DEFAULT '{}',
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_audit_created ON audit_log (created_at);

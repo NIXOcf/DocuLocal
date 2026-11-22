@@ -80,7 +80,7 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
     stages["guard"] = round((time.perf_counter() - t_guard) * 1000)
     if score > INJECTION_THRESHOLD:
         text, sources, grounded = BLOCKED_ANSWER, [], False
-        audit_service.record(user_id, "consulta_bloqueada", "conversation", conversation_id, motivo="inyeccion")
+        audit_service.record(user_id, "consulta_bloqueada", "conversation", conversation_id)
         mode = "bloqueada"
         logger.warning("Consulta bloqueada por posible inyección puntaje=%.2f", score)
     else:
@@ -102,6 +102,5 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
                 "ms=%d etapas_ms={%s}", mode or "respondida", plan_tipo, n_sub, len(sources), grounded,
                 len(question), ms, " ".join(f"{k}={v}" for k, v in stages.items()))
     if mode != "bloqueada":
-        audit_service.record(user_id, "consulta", "conversation", conversation_id,
-                             n_fuentes=len(sources), grounded=grounded, ms=ms)
+        audit_service.record(user_id, "consulta", "conversation", conversation_id)
     return {"question": {**user_msg, "sources": []}, "answer": assistant, "ms": ms}

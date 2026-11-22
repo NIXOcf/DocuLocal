@@ -8,9 +8,10 @@ Proyecto del curso INGT1003 (Universidad Mayor). Repositorio: https://github.com
 
 | Nombre | Usuario de GitHub |
 |---|---|
-| `[Nombre — usuario de GitHub]` | |
-| `[Nombre — usuario de GitHub]` | |
-| `[Nombre — usuario de GitHub]` | |
+| Eduardo Castillo | [PENDIENTE: usuario de GitHub] |
+| Cristofer del Río | [PENDIENTE: usuario de GitHub] |
+| Angelo D'Agostino | [PENDIENTE: usuario de GitHub] |
+| René Jorquera | [PENDIENTE: usuario de GitHub] |
 
 ## Arquitectura
 
@@ -22,7 +23,14 @@ Proyecto del curso INGT1003 (Universidad Mayor). Repositorio: https://github.com
 | Embeddings y reranker | **Locales** (fastembed): `paraphrase-multilingual-mpnet-base-v2` y `jina-reranker-v2-base-multilingual`. |
 | LLM | API compatible con OpenAI, configurable en `.env`: **Groq** (`openai/gpt-oss-120b`, `gpt-oss-20b` y `llama-prompt-guard-2-86m`) o **llama.cpp local** (`backend/scripts/llama_local.ps1`). |
 
-Los documentos, la base de datos, los embeddings y el reranker quedan en la máquina. Con Groq, la pregunta y los fragmentos recuperados **sí** viajan al proveedor; solo el modo llama.cpp es 100 % local.
+Los documentos, la base de datos, los embeddings y el reranker quedan en la máquina en ambos modos. La diferencia está en el LLM, que se elige con `LLM_BASE_URL` en `.env`:
+
+| Modo | Configuración | Qué sale de la red |
+|---|---|---|
+| Nube (`groq`) | `LLM_BASE_URL` apunta a Groq (por defecto) | La pregunta y los fragmentos autorizados que se usan para responder viajan a Groq (EE. UU.) |
+| Local (`local`) | `LLM_BASE_URL=http://127.0.0.1:8081/v1` (llama.cpp, `backend/scripts/llama_local.ps1`) | Nada |
+
+`GET /api/v1/health` informa el modo activo en el campo `modo`. El front muestra un aviso de privacidad con la variante que corresponde.
 
 Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de buscar, de modo que el LLM nunca recibe un fragmento no autorizado. Lo no autorizado responde 404. Detalle en [`docs/Hito2_Diseno_Backend.md`](docs/Hito2_Diseno_Backend.md).
 

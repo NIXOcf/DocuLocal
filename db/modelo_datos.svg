@@ -168,9 +168,9 @@
 <rect x="775" y="745" width="318" height="26" rx="0" fill="#f2f5f9"/>
 <text x="840" y="763" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">snippet</text>
 <text x="1084" y="763" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
-<rect x="34" y="740" width="320" height="230" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
-<rect x="34" y="740" width="320" height="40" rx="4" fill="#b9812a"/>
-<rect x="34" y="774" width="320" height="6" fill="#b9812a"/>
+<rect x="34" y="740" width="320" height="204" rx="4" fill="#ffffff" stroke="#c9d3df" stroke-width="1.5"/>
+<rect x="34" y="740" width="320" height="40" rx="4" fill="#0a5e66"/>
+<rect x="34" y="774" width="320" height="6" fill="#0a5e66"/>
 <text x="46" y="767" font-family="Calibri, Carlito, Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="bold" text-anchor="start">audit_log</text>
 <text x="44" y="801" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#b9812a" font-weight="bold" text-anchor="start">PK</text>
 <text x="100" y="801" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#13203c" font-weight="bold" text-anchor="start">id</text>
@@ -185,12 +185,11 @@
 <text x="100" y="879" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">resource</text>
 <text x="344" y="879" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
 <text x="100" y="905" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">resource_id</text>
-<text x="344" y="905" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text</text>
+<text x="344" y="905" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">text NULL</text>
 <rect x="35" y="913" width="318" height="26" rx="0" fill="#f2f5f9"/>
-<text x="100" y="931" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">detail</text>
-<text x="344" y="931" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">jsonb</text>
-<text x="100" y="957" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
-<text x="344" y="957" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<text x="100" y="931" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#2b3440" font-weight="normal" text-anchor="start">created_at</text>
+<text x="344" y="931" font-family="Consolas, 'Courier New', monospace" font-size="14" fill="#5b6573" font-weight="normal" text-anchor="end">timestamptz</text>
+<text x="34" y="982" font-family="Calibri, Carlito, Arial, sans-serif" font-size="13" fill="#5b6573" font-weight="normal" text-anchor="start" font-style="italic">audit_log.user_id → users: SET NULL (la fila sobrevive a la baja). Sin IP, correo ni texto.</text>
 <path d="M 354 71 L 379 71 L 379 383 L 404 383" fill="none" stroke="#0e8b8c" stroke-width="2"/>
 <circle cx="354" cy="71" r="4.5" fill="#0e8b8c"/>
 <circle cx="404" cy="383" r="4.5" fill="#0e8b8c"/>
@@ -233,15 +232,9 @@
 <text x="612" y="478" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">1</text>
 <text x="912" y="512" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="start">N</text>
 <text x="750" y="482" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic">SET NULL</text>
-<path d="M 34 71 L 12 71 L 12 817 L 34 817" fill="none" stroke="#0e8b8c" stroke-width="2"/>
-<circle cx="34" cy="71" r="4.5" fill="#0e8b8c"/>
-<circle cx="34" cy="817" r="4.5" fill="#0e8b8c"/>
-<text x="23" y="63" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">1</text>
-<text x="23" y="809" font-family="Calibri, Carlito, Arial, sans-serif" font-size="16" fill="#b9812a" font-weight="bold" text-anchor="middle">N</text>
-<text x="27" y="470" font-family="Calibri, Carlito, Arial, sans-serif" font-size="12.5" fill="#5b6573" font-weight="normal" text-anchor="middle" font-style="italic" transform="rotate(-90 27 470)">SET NULL</text>
-<rect x="404" y="800" width="690" height="170" rx="4" fill="#f2f5f9"/>
-<text x="422" y="830" font-family="Calibri, Carlito, Arial, sans-serif" font-size="18" fill="#13203c" font-weight="bold" text-anchor="start">Leyenda</text>
-<text x="422" y="858" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">PK clave primaria · FK foránea · UK única · UK* única con document_id</text>
-<text x="422" y="883" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">1 — N: uno a muchos; en cursiva, la acción ON DELETE de la clave foránea.</text>
-<text x="422" y="908" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">status: Procesando | Indexado | Error. tsv: columna generada en español.</text>
-<text x="422" y="933" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">Índices: HNSW (embedding) y GIN (tsv) en chunks; B-tree en las FK y fechas.</text></svg>
+<rect x="404" y="790" width="690" height="170" rx="4" fill="#f2f5f9"/>
+<text x="422" y="820" font-family="Calibri, Carlito, Arial, sans-serif" font-size="18" fill="#13203c" font-weight="bold" text-anchor="start">Leyenda</text>
+<text x="422" y="848" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">PK clave primaria · FK foránea · UK única · UK* única con document_id</text>
+<text x="422" y="873" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">1 — N: uno a muchos; en cursiva, la acción ON DELETE de la clave foránea.</text>
+<text x="422" y="898" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">status: Procesando | Indexado | Error. tsv: columna generada en español.</text>
+<text x="422" y="923" font-family="Calibri, Carlito, Arial, sans-serif" font-size="15.5" fill="#2b3440" font-weight="normal" text-anchor="start">Índices: HNSW (embedding) y GIN (tsv) en chunks; B-tree en las FK y fechas.</text></svg>

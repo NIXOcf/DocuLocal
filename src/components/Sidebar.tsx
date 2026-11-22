@@ -34,6 +34,8 @@ interface SidebarProps {
   ref?: Ref<HTMLElement>
   /** Se invoca al activar un enlace (cierra el panel en pantallas pequeñas). */
   onNavigate?: () => void
+  /** Reabre el aviso de privacidad. */
+  onOpenPrivacy?: () => void
 }
 
 const ROW_ACTION_CLASS =
@@ -42,7 +44,7 @@ const ROW_ACTION_CLASS =
 const FOOTER_LINK_CLASS =
   "flex min-h-11 w-full items-center justify-center gap-2 rounded-sm border border-slate-600 px-3 text-sm font-medium text-slate-100 transition-colors hover:bg-slate-800"
 
-function Sidebar({ id, className, ref, onNavigate }: SidebarProps) {
+function Sidebar({ id, className, ref, onNavigate, onOpenPrivacy }: SidebarProps) {
   const { session, isAdmin, logout } = useAuth()
   const { conversations, listStatus, reloadConversations, renameConversation, deleteConversation } =
     useChat()
@@ -242,6 +244,13 @@ function Sidebar({ id, className, ref, onNavigate }: SidebarProps) {
           >
             <LogOut className="size-4" aria-hidden="true" />
             Cerrar sesión
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPrivacy}
+            className={cn("rounded-sm text-xs text-slate-300 underline hover:text-white", FOCUS_RING_DARK)}
+          >
+            Privacidad
           </button>
         </div>
       </div>

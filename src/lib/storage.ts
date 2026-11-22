@@ -59,3 +59,21 @@ export function purgeLegacyStorage(): void {
     // Almacenamiento no disponible.
   }
 }
+
+const PRIVACY_KEY = "doculocal:privacy-notice:v1"
+
+export function hasSeenPrivacyNotice(): boolean {
+  try {
+    return localStorage.getItem(PRIVACY_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+export function markPrivacyNoticeSeen(): void {
+  try {
+    localStorage.setItem(PRIVACY_KEY, "1")
+  } catch {
+    // Sin almacenamiento: el aviso volverá a mostrarse.
+  }
+}

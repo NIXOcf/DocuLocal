@@ -357,7 +357,7 @@ function ChatView() {
           </Button>
         </form>
         <p className="mx-auto mt-2 max-w-4xl text-xs text-slate-600">
-          Las respuestas se generan a partir de los documentos indexados.
+          Las respuestas se generan a partir de los documentos indexados. No escribas datos personales de otras personas.
         </p>
       </div>
 

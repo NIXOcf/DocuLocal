@@ -56,7 +56,7 @@ def update_user(actor: dict, user_id: str, data: UserUpdate) -> UserOut:
     row = user_repository.update(user_id, fields)
     if row is None:
         raise NotFound("El usuario no existe.", "usuario_no_encontrado")
-    audit_service.record(str(actor["id"]), "user.update", "user", user_id, campos=sorted(set(fields) - {"password_hash", "password_changed_at"}))
+    audit_service.record(str(actor["id"]), "user.update", "user", user_id)
     return to_user_out(row)
 
 

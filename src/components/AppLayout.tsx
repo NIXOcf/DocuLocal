@@ -3,8 +3,10 @@ import type { MouseEvent } from "react"
 import { flushSync } from "react-dom"
 import { Menu, X } from "lucide-react"
 import { Outlet, useLocation } from "react-router-dom"
+import PrivacyNotice from "@/components/PrivacyNotice"
 import Sidebar from "@/components/Sidebar"
 import { useDocumentTitle } from "@/hooks/useDocumentTitle"
+import { hasSeenPrivacyNotice } from "@/lib/storage"
 import { FOCUS_RING_DARK } from "@/lib/styles"
 import { cn } from "@/lib/utils"
 
@@ -26,6 +28,7 @@ function AppLayout() {
   const location = useLocation()
   const section = getSection(location.pathname)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(() => !hasSeenPrivacyNotice())
 
   const mainRef = useRef<HTMLElement>(null)
   const sidebarRef = useRef<HTMLElement>(null)
@@ -127,6 +130,7 @@ function AppLayout() {
         id={SIDEBAR_ID}
         ref={sidebarRef}
         onNavigate={handleNavigate}
+        onOpenPrivacy={() => setPrivacyOpen(true)}
         className={cn(
           "fixed top-14 bottom-0 left-0 z-40 h-auto md:static md:z-auto md:flex md:h-full",
           menuOpen ? "flex" : "hidden",
@@ -142,6 +146,7 @@ function AppLayout() {
       >
         <Outlet />
       </main>
+      <PrivacyNotice open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </div>
   )
 }

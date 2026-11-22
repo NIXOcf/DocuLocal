@@ -101,7 +101,7 @@ backend/tests/     pruebas unitarias
 3. `services/chat_service.py`: lee el historial (`message_repository`) y lee el historial visible para el usuario (sin respuestas con fuentes que ya no puede ver); el guard anti-inyección (`rag/llm_client.prompt_injection_score`) puede bloquear la pregunta; luego `rag/query_planner` (condensa y planifica) y `rag/retriever`.
 4. `rag/retriever.py`: embebe las subconsultas (`rag/embeddings`) y llama a `chunk_repository.search_vector` / `search_text`, cuyo SQL une `chunks` con `documents` y aplica `visibility_clause()` **en el WHERE**: nivel, departamento y estado `Indexado`. Fusiona con RRF, reordena con `rag/reranker`, aplica umbral y diversidad y añade el fragmento vecino. Si no queda nada, responde "No encontré información…" sin llamar al LLM.
 5. `rag/generator.py`: pide la respuesta a Groq con el contexto numerado y verifica las citas `[n]`; `chat_service` deja solo las fuentes citadas y las renumera.
-6. `message_repository.insert_exchange` guarda la pregunta, la respuesta y las fuentes (`message_sources`) juntas en una sola transacción (si el LLM falló, no se guardó nada y reintentar no duplica la pregunta); `conversation_repository.touch` actualiza fecha y título, `audit_service` registra la consulta. El controlador devuelve 201.
+6. `message_repository.insert_exchange` guarda la pregunta, la respuesta y las fuentes (`message_sources`) juntas en una sola transacción (si el LLM falló, no se guardó nada y reintentar no duplica la pregunta); `conversation_repository.touch` actualiza fecha y título; `audit_service` registra la consulta (auditoría mínima: fecha, `user_id`, acción y recurso; sin IP, correo ni texto; se purga a los 30 días al arrancar). El controlador devuelve 201.
 
 ## Fallas frecuentes
 

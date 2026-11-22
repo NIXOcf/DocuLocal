@@ -10,6 +10,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
 from app.core.middleware import BodyLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
 from app.repositories import db
+from app.services import audit_service
 
 
 MIN_JWT_SECRET_CHARS = 32
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     setup_logging()
     _log_startup()
     db.open_pool()
+    audit_service.purge_expired()
     yield
     db.close_pool()
 

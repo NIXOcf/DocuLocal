@@ -61,7 +61,9 @@ erDiagram
         bigint id PK
         uuid user_id FK
         text action
-        jsonb detail
+        text resource
+        text resource_id
+        timestamptz created_at
     }
 ```
 

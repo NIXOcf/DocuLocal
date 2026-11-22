@@ -124,7 +124,7 @@ def upload(actor: dict, stream: BinaryIO, filename: str, access_level: str, depa
         if isinstance(exc, document_repository.DuplicateChecksum):
             raise Conflict("Este documento ya fue subido.", "documento_duplicado") from None
         raise
-    audit_service.record(str(actor["id"]), "document.upload", "document", str(row["id"]), nombre=row["original_name"])
+    audit_service.record(str(actor["id"]), "document.upload", "document", str(row["id"]))
     schedule(index_document, str(row["id"]))
     return to_document_out(row)
 
@@ -139,7 +139,7 @@ def update_document(actor: dict, document_id: str, data: DocumentUpdate) -> Docu
     row = document_repository.update_access(document_id, fields)
     if row is None:
         raise NotFound("El documento no existe.", "documento_no_encontrado")
-    audit_service.record(str(actor["id"]), "document.update", "document", document_id, campos=sorted(fields))
+    audit_service.record(str(actor["id"]), "document.update", "document", document_id)
     return to_document_out(row)
 
 
@@ -148,7 +148,7 @@ def delete_document(actor: dict, document_id: str) -> None:
     if row is None or not document_repository.delete(document_id):
         raise NotFound("El documento no existe.", "documento_no_encontrado")
     (get_settings().storage_path / row["stored_name"]).unlink(missing_ok=True)
-    audit_service.record(str(actor["id"]), "document.delete", "document", document_id, nombre=row["original_name"])
+    audit_service.record(str(actor["id"]), "document.delete", "document", document_id)
 
 
 def get_file(user: dict, document_id: str) -> tuple[Path, str, str]:
