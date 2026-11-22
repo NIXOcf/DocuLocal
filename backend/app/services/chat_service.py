@@ -71,8 +71,7 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
     started = time.perf_counter()
     user_id = str(user["id"])
     history = message_repository.recent(conversation_id, HISTORY_WINDOW, user["access_level"], user["department"])
-    first_question = not history
-    user_msg = message_repository.insert(conversation_id, "user", question)
+    first_question = message_repository.count(conversation_id) == 0
 
     stages: dict = {}
     logger.debug("Pregunta recibida: %r", question[:120])
@@ -88,8 +87,8 @@ def answer(user: dict, conversation_id: str, question: str) -> dict:
         text, sources, mode = _compose(question, history, user, stages)
         grounded = mode is None and bool(sources)
 
-    assistant = message_repository.insert(conversation_id, "assistant", text, grounded)
-    message_repository.insert_sources(str(assistant["id"]), [
+    # La pregunta solo se guarda junto con su respuesta: si el LLM falló (503) no queda un mensaje huérfano.
+    user_msg, assistant = message_repository.insert_exchange(conversation_id, question, text, grounded, [
         {"ref_number": i, "chunk_id": c.chunk_id, "document_id": c.document_id, "filename": c.filename,
          "page": c.page, "score": c.score, "snippet": _snippet(c.content)}
         for i, c in enumerate(sources, start=1)

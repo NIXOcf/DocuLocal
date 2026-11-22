@@ -1,6 +1,7 @@
 """Datos de demostración (idempotente). Uso, desde la raíz del repo:
     backend/.venv/Scripts/python backend/scripts/seed.py
 """
+import io
 import sys
 import time
 from pathlib import Path
@@ -53,7 +54,9 @@ def seed_documents(admin: dict) -> None:
             continue
         start = time.time()
         try:
-            doc = document_service.upload(admin, pdf.name, pdf.read_bytes(), level, None)
+            doc = document_service.upload(
+                admin, io.BytesIO(pdf.read_bytes()), pdf.name, level, None,
+                lambda fn, *args: None)  # la indexación se hace abajo, de forma sincrónica
         except Conflict:
             print(f"  ya existe (mismo contenido): {pdf.name}")
             continue

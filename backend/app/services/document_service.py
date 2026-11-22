@@ -3,6 +3,7 @@ import io
 import uuid
 import zipfile
 from pathlib import Path
+from typing import BinaryIO, Callable
 
 from app.core.config import get_settings
 from app.core.errors import BadRequest, Conflict, NotFound, PayloadTooLarge, UnsupportedMedia
@@ -11,6 +12,7 @@ from app.schemas.common import make_page
 from app.schemas.document import ChunkOut, DocumentOut, DocumentUpdate
 from app.services import audit_service
 from app.services.access import level_to_int, level_to_name
+from app.services.rag.ingestion import index_document
 
 MIME_TYPES = {
     ".pdf": "application/pdf",
@@ -94,11 +96,14 @@ def get_document(user: dict, document_id: str) -> DocumentOut:
     return to_document_out(_get_row(user, document_id))
 
 
-def upload(actor: dict, filename: str, content: bytes, access_level: str, department: str | None) -> DocumentOut:
+def upload(actor: dict, stream: BinaryIO, filename: str, access_level: str, department: str | None,
+           schedule: Callable[..., None]) -> DocumentOut:
+    """Valida y guarda el archivo; `schedule(fn, *args)` agenda la indexación (p. ej. BackgroundTasks.add_task)."""
     settings = get_settings()
     ext = Path(filename).suffix.lower()
     if ext not in MIME_TYPES:
         raise UnsupportedMedia("Solo se aceptan archivos PDF, DOCX o XLSX.", "tipo_no_soportado")
+    content = stream.read(settings.max_upload_mb * 1024 * 1024 + 1)  # +1 byte para detectar que se pasó del límite
     if not content:
         raise BadRequest("El archivo está vacío.", "archivo_vacio")
     if len(content) > settings.max_upload_mb * 1024 * 1024:
@@ -120,6 +125,7 @@ def upload(actor: dict, filename: str, content: bytes, access_level: str, depart
             raise Conflict("Este documento ya fue subido.", "documento_duplicado") from None
         raise
     audit_service.record(str(actor["id"]), "document.upload", "document", str(row["id"]), nombre=row["original_name"])
+    schedule(index_document, str(row["id"]))
     return to_document_out(row)
 
 

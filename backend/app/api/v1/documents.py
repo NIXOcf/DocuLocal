@@ -4,12 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Form, Query, Response, UploadFile
 from fastapi.responses import FileResponse
 
-from app.core.config import get_settings
 from app.core.deps import AdminUser, CurrentUser
 from app.schemas.common import AccessLevel, Page
 from app.schemas.document import ChunkOut, DocumentOut, DocumentUpdate
 from app.services import document_service
-from app.services.rag.ingestion import index_document
 
 router = APIRouter(tags=["documents"])
 
@@ -25,10 +23,7 @@ def list_documents(user: CurrentUser, pagina: Annotated[int, Query(ge=1, le=1000
 @router.post("/documents", response_model=DocumentOut, status_code=202)
 def upload_document(admin: AdminUser, file: UploadFile, access_level: Annotated[AccessLevel, Form(alias="accessLevel")],
                     tasks: BackgroundTasks, response: Response, department: Annotated[str | None, Form(max_length=80)] = None):
-    limit = get_settings().max_upload_mb * 1024 * 1024
-    content = file.file.read(limit + 1)  # +1 byte para detectar que se pasó del límite
-    doc = document_service.upload(admin, file.filename or "", content, access_level, department)
-    tasks.add_task(index_document, str(doc.id))
+    doc = document_service.upload(admin, file.file, file.filename or "", access_level, department, tasks.add_task)
     response.headers["Location"] = f"/api/v1/documents/{doc.id}"
     return doc
 

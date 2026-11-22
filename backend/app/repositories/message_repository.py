@@ -12,27 +12,30 @@ def count(conversation_id: str) -> int:
         return cur.fetchone()["n"]
 
 
-def insert(conversation_id: str, role: str, content: str, grounded: bool | None = None) -> dict:
-    with db.cursor() as cur:
-        cur.execute(
-            f"INSERT INTO messages (conversation_id, role, content, grounded) VALUES (%s, %s, %s, %s) "
-            f"RETURNING {_COLUMNS}",
-            (conversation_id, role, content, grounded),
-        )
-        return cur.fetchone()
+def insert_exchange(conversation_id: str, question: str, answer: str, grounded: bool,
+                    sources: list[dict]) -> tuple[dict, dict]:
+    """Guarda pregunta, respuesta y fuentes en una sola transacción: o quedan todas o ninguna.
 
-
-def insert_sources(message_id: str, rows: list[dict]) -> None:
-    """rows: ref_number, chunk_id, document_id, filename, page, score, snippet."""
-    if not rows:
-        return
+    sources: ref_number, chunk_id, document_id, filename, page, score, snippet.
+    """
     with db.cursor() as cur:
-        cur.executemany(
-            "INSERT INTO message_sources (message_id, ref_number, chunk_id, document_id, filename, page, score, "
-            "snippet) VALUES (%(message_id)s, %(ref_number)s, %(chunk_id)s, %(document_id)s, %(filename)s, "
-            "%(page)s, %(score)s, %(snippet)s)",
-            [{**r, "message_id": message_id} for r in rows],
-        )
+        rows = []
+        for role, content, g in (("user", question, None), ("assistant", answer, grounded)):
+            # clock_timestamp() (no now()): los dos mensajes necesitan instantes distintos para ordenarse
+            cur.execute(
+                f"INSERT INTO messages (conversation_id, role, content, grounded, created_at) "
+                f"VALUES (%s, %s, %s, %s, clock_timestamp()) RETURNING {_COLUMNS}",
+                (conversation_id, role, content, g),
+            )
+            rows.append(cur.fetchone())
+        if sources:
+            cur.executemany(
+                "INSERT INTO message_sources (message_id, ref_number, chunk_id, document_id, filename, page, "
+                "score, snippet) VALUES (%(message_id)s, %(ref_number)s, %(chunk_id)s, %(document_id)s, "
+                "%(filename)s, %(page)s, %(score)s, %(snippet)s)",
+                [{**r, "message_id": rows[1]["id"]} for r in sources],
+            )
+    return rows[0], rows[1]
 
 
 # Fuentes guardadas: el nombre y el extracto reales solo salen si el usuario ve HOY el documento (mismo criterio que

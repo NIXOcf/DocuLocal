@@ -47,8 +47,10 @@ def list_messages(user: CurrentUser, conversation_id: UUID):
 
 
 @router.post("/{conversation_id}/messages", response_model=AnswerOut, status_code=201)
-def post_message(user: CurrentUser, conversation_id: UUID, body: MessageCreate):
-    return conversation_service.post_message(user, str(conversation_id), body.content)
+def post_message(user: CurrentUser, conversation_id: UUID, body: MessageCreate, response: Response):
+    answer = conversation_service.post_message(user, str(conversation_id), body.content)
+    response.headers["Location"] = f"/api/v1/conversations/{conversation_id}/messages/{answer.id}"
+    return answer
 
 
 @router.patch("/{conversation_id}/messages/{message_id}", response_model=MessageOut)
