@@ -3,12 +3,15 @@ Uso: backend/.venv/Scripts/python backend/scripts/eval_rag.py
 Verifica automáticamente: (1) ninguna fuente supera el nivel del usuario, (2) las preguntas restringidas
 no devuelven fuentes y responden "no encontré", (3) la respuesta cita algún documento esperado.
 """
+import argparse
+import statistics
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import httpx  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
@@ -41,10 +44,39 @@ CASES = [
 ]
 
 
+class _Retry429:
+    """Respeta el límite de 10 preguntas/min: ante 429 espera Retry-After y reintenta."""
+
+    def __init__(self, client):
+        self._c = client
+
+    def __getattr__(self, name):
+        return getattr(self._c, name)
+
+    def post(self, *a, **kw):
+        for _ in range(5):
+            r = self._c.post(*a, **kw)
+            if r.status_code != 429:
+                return r
+            time.sleep(int(r.headers.get("Retry-After", "10")) + 1)
+        return r
+
+
 def main() -> None:
-    lines = ["# Resultados de la evaluación RAG", "", f"Generado: {time.strftime('%Y-%m-%d %H:%M')} | modelo de respuesta: {get_settings().llm_model} | RERANK_MIN_SCORE={get_settings().rerank_min_score}", ""]
-    stats = {"ok": 0, "total": 0, "access_failures": 0, "ms": []}
-    with TestClient(app) as client:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base-url", help="API ya en marcha (p. ej. http://127.0.0.1:8001); sin él se usa la app en proceso")
+    ap.add_argument("--etiqueta", default="", help="etiqueta del modelo evaluado (se anota en el informe)")
+    ap.add_argument("--salida", help="archivo .md de salida (por defecto eval_resultados.md)")
+    ap.add_argument("--pausa", type=float, default=8, help="segundos entre preguntas")
+    args = ap.parse_args()
+    out = Path(args.salida) if args.salida else OUT
+    out.parent.mkdir(parents=True, exist_ok=True)
+    model = args.etiqueta or get_settings().llm_model
+    lines = ["# Resultados de la evaluación RAG", "", f"Generado: {time.strftime('%Y-%m-%d %H:%M')} | modelo de respuesta: {model} | RERANK_MIN_SCORE={get_settings().rerank_min_score}", ""]
+    stats = {"ok": 0, "total": 0, "access_failures": 0, "ms": [], "ungrounded": 0, "refusals": 0}
+    ctx = httpx.Client(base_url=args.base_url, timeout=300) if args.base_url else TestClient(app)
+    with ctx as raw_client:
+        client = _Retry429(raw_client)
         def login(user: str) -> dict:
             r = client.post("/api/v1/auth/login", json={"email": f"{user}@aguanube.cl", "password": PASSWORD})
             return {"Authorization": f"Bearer {r.json()['access_token']}"}
@@ -59,6 +91,8 @@ def main() -> None:
             t0 = time.perf_counter()
             r = client.post(f"/api/v1/conversations/{conv}/messages", headers=headers, json={"content": question})
             ms = round((time.perf_counter() - t0) * 1000)
+            if r.status_code != 201:
+                print("HTTP", r.status_code, r.text[:200])
             body = r.json()
             sources = body.get("sources", [])
             checks = []
@@ -76,6 +110,9 @@ def main() -> None:
                 checks.append(("sin fuentes", not sources))
             elif kind == "vaga":
                 checks.append(("sin alucinar (no info o fuentes)", bool(sources) or body.get("content") == NO_INFO_ANSWER))
+            if expect and r.status_code == 201:
+                stats["ungrounded"] += body.get("grounded") is not True
+                stats["refusals"] += body.get("content") == NO_INFO_ANSWER
             ok = r.status_code == 201 and all(c for _, c in checks)
             stats["ok"] += ok
             stats["total"] += 1
@@ -87,11 +124,14 @@ def main() -> None:
                       "", "> " + str(body.get("content", body)).replace("\n", "\n> "), ""]
             print(f"{'OK ' if ok else 'FAIL'} [{kind}] {question[:70]} -> {ms} ms, {len(sources)} fuentes")
             client.delete(f"/api/v1/conversations/{conv}", headers=headers)
-            time.sleep(8)  # evita el límite de peticiones por minuto de Groq (cada pregunta hace ~3 llamadas)
+            time.sleep(args.pausa)  # respeta el límite por minuto del back end y de Groq (cada pregunta hace ~3 llamadas)
 
-    summary = (f"Correctas: {stats['ok']}/{stats['total']} | latencia media: {sum(stats['ms']) // len(stats['ms'])} ms | "
-               f"fallos de acceso: {stats['access_failures']}")
-    OUT.write_text("\n".join(lines[:4] + [f"**{summary}**", ""] + lines[4:]), encoding="utf-8")
+    ms = sorted(stats["ms"])
+    p90 = ms[min(len(ms) - 1, int(0.9 * len(ms)))]
+    summary = (f"Correctas: {stats['ok']}/{stats['total']} | latencia media: {sum(ms) // len(ms)} ms | p90: {p90} ms | "
+               f"mediana: {int(statistics.median(ms))} ms | fallos de acceso: {stats['access_failures']} | "
+               f"sin grounded (esperaba respuesta): {stats['ungrounded']} | rechazos indebidos: {stats['refusals']}")
+    out.write_text("\n".join(lines[:4] + [f"**{summary}**", ""] + lines[4:]), encoding="utf-8")
     print(summary)
     sys.exit(0 if stats["access_failures"] == 0 else 1)
 

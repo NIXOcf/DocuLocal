@@ -46,6 +46,13 @@ def test_planner_invalid_json_falls_back():
         assert (plan.tipo, plan.subqueries, plan.search_question) == ("documental", ["¿Cuántos días?"], "¿Cuántos días?")
 
 
+def test_planner_strips_markdown_fence():
+    body = json.dumps({"tipo": "saludo", "subconsultas": ["a"], "palabras_clave": "k"})
+    for raw in (f"```json\n{body}\n```", f"```\n{body}\n```", f"  ```JSON {body}```\n"):
+        plan = parse_plan(raw, "hola")
+        assert (plan.tipo, plan.subqueries, plan.keywords) == ("saludo", ["a"], "k")
+
+
 def test_planner_sanitizes_fields():
     raw = json.dumps({"tipo": "raro", "subconsultas": ["a", 5, "  ", "b", "c", "d", "e"], "palabras_clave": 3})
     plan = parse_plan(raw, "q")

@@ -1,6 +1,7 @@
 """Condensación de la pregunta con el historial y planificación de la búsqueda (modelo rápido)."""
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 
 from app.core.config import get_settings
@@ -61,7 +62,8 @@ def parse_plan(raw: str, question: str) -> QueryPlan:
     """Valida y sanea el JSON del modelo; ante cualquier problema, plan documental con la pregunta tal cual."""
     fallback = QueryPlan("documental", [question], "", question)
     try:
-        data = json.loads(raw)
+        fence = re.fullmatch(r"\s*```(?:json)?\s*(.*?)\s*```\s*", raw, re.DOTALL | re.IGNORECASE)  # Qwen envuelve el JSON
+        data = json.loads(fence.group(1) if fence else raw)
         if not isinstance(data, dict):
             return fallback
         tipo = data.get("tipo") if data.get("tipo") in TIPOS else "documental"
