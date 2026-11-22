@@ -6,7 +6,7 @@ API REST en FastAPI con un asistente RAG sobre los documentos internos de la emp
 ## Requisitos
 
 - Python 3.12, Docker (PostgreSQL 17 + pgvector), y una clave de Groq en `GROQ_API_KEY`.
-- Unos 1,5 GB libres para los modelos locales (embeddings y reranker, se descargan solos la primera vez).
+- Unos 2,2 GB libres para los modelos locales (embeddings y reranker, se descargan solos la primera vez; ver los requisitos de hardware en el README raíz).
 
 ## Levantar
 
@@ -104,7 +104,7 @@ backend/tests/     pruebas unitarias
 ## Fallas frecuentes
 
 - **Puerto 5432 ocupado** (otro Postgres local): cambiar `POSTGRES_PORT` en `.env` (por ejemplo 5433) y volver a levantar `docker compose up -d db`.
-- **Primera ejecución lenta**: fastembed descarga los modelos de embeddings y reranker (~1 GB) en el primer seed o la primera consulta.
+- **Primera ejecución lenta**: fastembed descarga los modelos de embeddings y reranker (~2,2 GB) en el primer seed o la primera consulta.
 - **Docker apagado**: `/health` responde 503 `bd_no_disponible` o uvicorn no arranca; iniciar Docker Desktop y `docker compose up -d db`.
 - **Falta `GROQ_API_KEY`** (o clave inválida): el chat devuelve 503 `llm_no_disponible`; el resto de la API sigue funcionando.
 - **Respuestas "No encontré información" para algo que sí está**: revisar `RERANK_MIN_SCORE` en `.env` (más bajo = más permisivo) y que el documento esté `Indexado`.
@@ -136,7 +136,7 @@ Trade-off: privacidad total y sin cupo, a cambio de menor calidad y más latenci
 | Chat 503 con clave | `ERROR [llm] ... clave del proveedor rechazada (401)` | `GROQ_API_KEY` inválida o vacía (`WARNING [arranque] Falta GROQ_API_KEY`) | Corregir la clave |
 | Chat 503 en modo local | `ERROR [llm] ... conexión rechazada en 127.0.0.1:8081: ¿está encendido llama-server?` | llama-server apagado o puerto distinto | Ejecutar `llama_local.ps1`; revisar `LLM_BASE_URL` |
 | Chat 503 tras mucho rato (local) | `ERROR [llm] ... timeout tras 30s` | Respuesta larga más lenta que el timeout | Subir `LLM_TIMEOUT_SECONDS` (180) |
-| Primera consulta o seed falla | `ERROR [embeddings] No se pudo cargar el modelo...` (o `[reranker]`) | Modelo sin descargar y sin internet | Conectar a internet para la primera descarga (~1 GB) |
+| Primera consulta o seed falla | `ERROR [embeddings] No se pudo cargar el modelo...` (o `[reranker]`) | Modelo sin descargar y sin internet | Conectar a internet para la primera descarga (~2,2 GB) |
 | Documento queda en `Error` | `WARNING [ingestion] Documento sin texto extraíble` | PDF escaneado sin OCR | Subir una versión con texto (OCR) |
 | "No encontré información" para algo que existe | `[recuperacion] ... mejor_puntaje=-1.5 umbral=-1.30` | Puntaje bajo el umbral, o documento no `Indexado` / sin permiso | Revisar `RERANK_MIN_SCORE` y el estado del documento |
 | `/health` con `"llm": "no_disponible"` | `WARNING [salud] LLM no disponible` | Proveedor caído, sin red o clave inválida | Ver las filas anteriores |

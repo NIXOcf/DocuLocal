@@ -39,9 +39,9 @@ Seguridad: el filtro de nivel y departamento se aplica dentro del SQL antes de b
 ## Requisitos previos
 
 - Node.js 18 o superior
-- Python **3.12** (no 3.13 ni 3.14: las dependencias fijadas pueden no tener paquetes); en Windows, `winget install Python.Python.3.12`
+- Python **3.12** (la versión probada; 3.13 y 3.14 resuelven las dependencias con paquetes binarios, pero no se probó que el sistema corra en ellas); en Windows, `winget install Python.Python.3.12`
 - Docker (con Docker Compose)
-- Unos 1,5 GB libres para los modelos locales (se descargan solos la primera vez)
+- Hardware (medido en un Ryzen 5 4650G, 32 GB, Windows 10; sin GPU para la API): **16 GB de RAM recomendados, 8 GB como mínimo ajustado**. El back usa ~1,7 GB tras cargar los modelos y llegó a ~6,5 GB durante la batería de evaluación; Docker Desktop suma otros ~2 GB y PostgreSQL ~60 MB. **~6 GB de disco libre**: modelos de embeddings y reranker 2,2 GB (se descargan solos la primera vez, en la carpeta temporal del usuario), imagen de PostgreSQL 0,65 GB, `node_modules` 0,2 GB y el entorno Python. La indexación va en CPU (~11 s por PDF de demo) y no necesita GPU
 - Una clave de Groq (`GROQ_API_KEY`), salvo que uses el modo llama.cpp local
 
 ## Instalación (PowerShell, desde esta carpeta)
