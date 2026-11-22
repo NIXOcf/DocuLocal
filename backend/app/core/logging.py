@@ -10,6 +10,12 @@ from app.core.config import get_settings
 # Diccionario mutable por petición: así un cambio hecho en un hilo (dependencias síncronas) lo ve el middleware.
 _ctx: ContextVar[dict | None] = ContextVar("request_ctx", default=None)
 _VALID_ID = re.compile(r"[A-Za-z0-9-]{1,64}")
+_CONTROL = re.compile(r"[\x00-\x08\x0a-\x1f\x7f]")  # caracteres de control salvo el tabulador
+
+
+def sanitize(text: str) -> str:
+    r"""Reemplaza CR, LF y demás caracteres de control por escapes visibles (\n, \r, \x1b): evita falsificar líneas."""
+    return _CONTROL.sub(lambda m: m.group().encode("unicode_escape").decode(), text)
 
 
 def new_request_ctx(incoming: str | None) -> dict:
@@ -38,6 +44,8 @@ def mask_email(email: str) -> str:
 
 class _ContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        # Mensaje final saneado (cubre ruta, nombres de campo y cualquier dato del cliente); args ya consumidos.
+        record.msg, record.args = sanitize(record.getMessage()), None
         record.request_id = current_request_id()
         record.modulo = record.name.removeprefix("doculocal.")
         return True

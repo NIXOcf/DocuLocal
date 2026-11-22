@@ -1,4 +1,5 @@
 """Generación fundamentada con citas [n] y verificación posterior de las citas."""
+import html
 import re
 
 from app.core.config import get_settings
@@ -26,8 +27,10 @@ HISTORY_WINDOW = 4
 
 
 def build_context(chunks: list[RetrievedChunk]) -> str:
+    # Se escapan contenido y nombre de archivo: un documento no puede cerrar la etiqueta ni inyectar otras.
     return "\n\n".join(
-        f'<fragmento n="{i}" archivo="{c.filename}" pagina="{c.page if c.page else "s/n"}">\n{c.context}\n</fragmento>'
+        f'<fragmento n="{i}" archivo="{html.escape(c.filename, quote=True)}" pagina="{c.page if c.page else "s/n"}">\n'
+        f'{html.escape(c.context, quote=True)}\n</fragmento>'
         for i, c in enumerate(chunks, start=1)
     )
 

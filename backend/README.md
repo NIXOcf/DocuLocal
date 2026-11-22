@@ -21,10 +21,21 @@ uv pip install -r backend/requirements.txt --python backend/.venv/Scripts/python
                                            # (en Linux/Mac: backend/.venv/bin/python)
 
 backend/.venv/Scripts/python backend/scripts/seed.py                   # usuarios y 19 PDF de Docs/prueba (≈2 min)
-backend/.venv/Scripts/python -m uvicorn app.main:app --app-dir backend --port 8000
+backend/.venv/Scripts/python -m uvicorn app.main:app --app-dir backend --port 8000 --no-server-header
 ```
 
-Swagger: http://localhost:8000/docs · salud: http://localhost:8000/api/v1/health
+`--no-server-header` evita anunciar el servidor en cada respuesta. Swagger (`/docs`, `/redoc`, `/openapi.json`) está
+**desactivado por defecto**: para desarrollo o la demo poner `ENABLE_DOCS=true` en `.env` (en producción, `false`).
+Con la opción activa: http://localhost:8000/docs · salud: http://localhost:8000/api/v1/health
+
+`JWT_SECRET` debe tener al menos 32 caracteres (la API no arranca si es más corto).
+
+### Migraciones de la BD
+
+`db/schema.sql` crea todo desde cero. Para una BD ya existente, aplicar los archivos de `db/migrations/` (idempotentes), por ejemplo:
+`docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrations/001_password_changed_at.sql`
+(`001`: columna `users.password_changed_at`; los tokens emitidos antes de un cambio de contraseña dejan de valer).
+PostgreSQL solo se publica en `127.0.0.1` (`docker-compose.yml`).
 
 Para empezar con la BD limpia: `docker compose down -v && docker compose up -d db` y repetir el seed.
 
@@ -50,6 +61,24 @@ backend/.venv/Scripts/python backend/scripts/eval_rag.py  # extremo a extremo (B
 Gerencia hechas por un trabajador, y verifica que ninguna fuente supere el nivel del usuario. Termina con código 1 si hay
 una fuga de acceso. Colección Postman con una carpeta "Demo en vivo": `postman/DocuLocal.postman_collection.json`
 (para subir el documento de ejemplo, usar como directorio de trabajo de Postman la carpeta `postman/`).
+
+## Límites y protecciones
+
+| Qué | Límite | Respuesta |
+|---|---|---|
+| Login: fallos por (IP, correo) | 5 en 15 min | 429 `demasiados_intentos` + `Retry-After` |
+| Login: fallos por IP (todos los correos) | 20 en 15 min | 429 `demasiados_intentos` + `Retry-After` |
+| Login: intentos por cuenta (todas las IP) | desde el 6.º en 15 min: espera `min(2^(n-5), 8)` s antes de verificar | nunca 429 |
+| Preguntas al chat | 10 por minuto por usuario | 429 `demasiadas_consultas` + `Retry-After` |
+| Cuerpo de la petición | 64 KB; `POST /documents`: `MAX_UPLOAD_MB` + 1 MB (se corta aunque falte o mienta `Content-Length`) | 413 `cuerpo_demasiado_grande` / `archivo_demasiado_grande` |
+| Subidas | firma real (`%PDF-`, ZIP con `word/document.xml` o `xl/workbook.xml`); ≤200 MB descomprimidos y proporción ≤100 por entrada | 415 `tipo_no_coincide` / `archivo_sospechoso` |
+
+Los contadores viven en memoria de un solo proceso (con varias instancias, usar Redis). La IP es `request.client.host`:
+detrás de un proxy hay que configurar uvicorn con `--proxy-headers`/`--forwarded-allow-ips` para ver la IP real.
+El límite por cuenta no bloquea (así un atacante no puede dejar fuera a un usuario legítimo): solo retrasa; mitigación futura: CAPTCHA.
+Todas las respuestas (salvo `/docs` y `/redoc`) llevan `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` y una CSP restrictiva.
+Las fuentes de mensajes viejos se muestran según el acceso **actual** del usuario ("Documento no disponible" si ya no lo ve),
+y esas respuestas no se envían al LLM como historial. La pregunta se guarda junto con su respuesta (si el LLM falla, no queda guardada).
 
 ## Estructura por capas (la dependencia solo baja)
 
