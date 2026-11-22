@@ -1,53 +1,132 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import type { ListStatus } from "@/context/ChatContext"
 import { DocumentsContext } from "@/context/DocumentsContext"
 import type {
   AddFilesResult,
   DocumentsContextValue,
   RejectedFile,
 } from "@/context/DocumentsContext"
-import { mockDocuments } from "@/data/mockData"
-import { createId } from "@/lib/id"
-import { formatFileSize, sanitizeFilename, validateUpload } from "@/lib/sanitize"
-import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage"
-import { LIMITS, isDocumentList } from "@/lib/validators"
+import { useAuth } from "@/hooks/useAuth"
+import { useToast } from "@/hooks/useToast"
+import { ApiError, errorMessage, request } from "@/lib/api"
+import type { Page } from "@/lib/api"
+import { sanitizeFilename, validateUpload } from "@/lib/sanitize"
 import type { AccessLevel, DocumentItem } from "@/types"
 
 const MAX_FILES_PER_OPERATION = 10
-const INDEXING_DELAY_MS = 2500
+const PAGE_SIZE = 20
+const POLL_INTERVAL_MS = 2000
 
-function loadDocuments(): DocumentItem[] {
-  const stored = safeGet(STORAGE_KEYS.documents, isDocumentList, mockDocuments)
-  // Los temporizadores de indexación se pierden al recargar: se dan por terminados.
-  return stored.map((doc) =>
-    doc.status === "Procesando" ? { ...doc, status: "Indexado" } : doc,
-  )
+interface QueueItem {
+  file: File
+  accessLevel: AccessLevel
 }
 
+/** Se monta con `key` = id de usuario (ver App). Solo el admin carga la lista. */
 function DocumentsProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<DocumentItem[]>(loadDocuments)
+  const { isAdmin } = useAuth()
+  const { notify } = useToast()
+  const [documents, setDocuments] = useState<DocumentItem[]>([])
+  const [status, setStatus] = useState<ListStatus>(isAdmin ? "loading" : "ready")
+  const [page, setPage] = useState(1)
+  const [pages, setPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [version, setVersion] = useState(0)
+  const [queued, setQueued] = useState(0)
+
   const documentsRef = useRef(documents)
-  const timeoutsRef = useRef<Set<number>>(new Set())
+  const queueRef = useRef<QueueItem[]>([])
+  const runningRef = useRef(false)
 
   useEffect(() => {
     documentsRef.current = documents
-    safeSet(STORAGE_KEYS.documents, documents)
   }, [documents])
 
+  // Al desmontar (cambio de usuario) se descarta lo que quede en cola.
   useEffect(() => {
-    const timeouts = timeoutsRef.current
+    const queue = queueRef
     return () => {
-      timeouts.forEach((id) => clearTimeout(id))
-      timeouts.clear()
+      queue.current = []
     }
   }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    let cancelled = false
+    request<Page<DocumentItem>>(`/documents?pagina=${page}&tamano=${PAGE_SIZE}`)
+      .then((result) => {
+        if (cancelled) return
+        setDocuments(result.datos)
+        setPages(Math.max(1, result.paginacion.paginas))
+        setTotal(result.paginacion.total)
+        setStatus("ready")
+      })
+      .catch(() => !cancelled && setStatus("error"))
+    return () => {
+      cancelled = true
+    }
+  }, [isAdmin, page, version])
+
+  const reload = useCallback(() => {
+    setStatus("loading")
+    setVersion((v) => v + 1)
+  }, [])
+
+  // Sondeo: consulta cada documento en "Procesando" hasta que quede Indexado o Error.
+  const hasProcessing = documents.some((d) => d.status === "Procesando")
+  useEffect(() => {
+    if (!hasProcessing) return
+    const timer = window.setInterval(() => {
+      documentsRef.current
+        .filter((d) => d.status === "Procesando")
+        .forEach(async ({ id, name }) => {
+          try {
+            const doc = await request<DocumentItem>(`/documents/${encodeURIComponent(id)}`)
+            if (doc.status === "Procesando") return
+            setDocuments((prev) => prev.map((d) => (d.id === id ? doc : d)))
+            if (doc.status === "Error") {
+              notify("error", `${name}: ${doc.errorMessage ?? "No se pudo indexar el documento."}`)
+            } else {
+              notify("success", `${name} quedó indexado.`)
+            }
+          } catch (error) {
+            // 404: ya no existe (borrado en otra sesión); otros errores se reintentan.
+            if (error instanceof ApiError && error.status === 404) {
+              setDocuments((prev) => prev.filter((d) => d.id !== id))
+            }
+          }
+        })
+    }, POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [hasProcessing, notify])
+
+  // Cola secuencial: un archivo por POST.
+  const processQueue = useCallback(async () => {
+    if (runningRef.current) return
+    runningRef.current = true
+    while (queueRef.current.length > 0) {
+      const { file, accessLevel } = queueRef.current[0]
+      try {
+        const form = new FormData()
+        form.append("file", file)
+        form.append("accessLevel", accessLevel)
+        await request<DocumentItem>("/documents", { method: "POST", form })
+        setPage(1)
+        setVersion((v) => v + 1)
+      } catch (error) {
+        notify("error", `${sanitizeFilename(file.name)}: ${errorMessage(error)}`)
+      }
+      queueRef.current.shift()
+      setQueued(queueRef.current.length)
+    }
+    runningRef.current = false
+  }, [notify])
 
   const addFiles = useCallback(
     (files: File[], accessLevel: AccessLevel): AddFilesResult => {
       const rejected: RejectedFile[] = []
-      const newDocs: DocumentItem[] = []
-      let available = LIMITS.documents - documentsRef.current.length
-
+      let added = 0
       files.forEach((file, index) => {
         const name = sanitizeFilename(file.name)
         if (index >= MAX_FILES_PER_OPERATION) {
@@ -62,62 +141,50 @@ function DocumentsProvider({ children }: { children: ReactNode }) {
           rejected.push({ name, reason: validation.reason })
           return
         }
-        if (available <= 0) {
-          rejected.push({
-            name,
-            reason: `Se alcanzó el límite de ${LIMITS.documents} documentos.`,
-          })
-          return
-        }
-        available -= 1
-        // Solo se leen metadatos (nombre y tamaño): el contenido no se lee ni se sube.
-        newDocs.push({
-          id: createId("doc"),
-          name,
-          size: formatFileSize(file.size),
-          uploadedAt: new Date().toISOString(),
-          status: "Procesando",
-          accessLevel,
-        })
+        queueRef.current.push({ file, accessLevel })
+        added += 1
       })
-
-      if (newDocs.length > 0) {
-        const next = [...newDocs, ...documentsRef.current]
-        documentsRef.current = next
-        setDocuments(next)
-
-        newDocs.forEach((doc) => {
-          const timeoutId = window.setTimeout(() => {
-            timeoutsRef.current.delete(timeoutId)
-            setDocuments((prev) =>
-              prev.map((d) =>
-                d.id === doc.id ? { ...d, status: "Indexado" } : d,
-              ),
-            )
-          }, INDEXING_DELAY_MS)
-          timeoutsRef.current.add(timeoutId)
-        })
+      if (added > 0) {
+        setQueued(queueRef.current.length)
+        void processQueue()
       }
-
-      return { added: newDocs.length, rejected }
+      return { added, rejected }
     },
-    [],
+    [processQueue],
   )
 
-  const removeDocument = useCallback((id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id))
-  }, [])
+  const removeDocument = useCallback(
+    async (id: string) => {
+      try {
+        await request(`/documents/${encodeURIComponent(id)}`, { method: "DELETE" })
+      } catch (error) {
+        notify("error", errorMessage(error, "No se pudo eliminar el documento."))
+        return false
+      }
+      if (documentsRef.current.length === 1 && page > 1) setPage(page - 1)
+      else setVersion((v) => v + 1)
+      return true
+    },
+    [notify, page],
+  )
 
   const value = useMemo<DocumentsContextValue>(
-    () => ({ documents, addFiles, removeDocument }),
-    [documents, addFiles, removeDocument],
+    () => ({
+      documents,
+      status,
+      page,
+      pages,
+      total,
+      setPage,
+      reload,
+      queued,
+      addFiles,
+      removeDocument,
+    }),
+    [documents, status, page, pages, total, reload, queued, addFiles, removeDocument],
   )
 
-  return (
-    <DocumentsContext.Provider value={value}>
-      {children}
-    </DocumentsContext.Provider>
-  )
+  return <DocumentsContext.Provider value={value}>{children}</DocumentsContext.Provider>
 }
 
 export default DocumentsProvider

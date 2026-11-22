@@ -1,7 +1,10 @@
 import { useRef, useState } from "react"
 import type { ChangeEvent, DragEvent } from "react"
 import {
+  AlertCircle,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Globe,
   Loader2,
@@ -30,11 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import ConfirmDialog from "@/components/ConfirmDialog"
 import type { RejectedFile } from "@/context/DocumentsContext"
 import { useDocuments } from "@/hooks/useDocuments"
 import { FOCUS_RING_LIGHT } from "@/lib/styles"
 import { cn } from "@/lib/utils"
-import type { AccessLevel } from "@/types"
+import type { AccessLevel, DocumentItem } from "@/types"
 
 const ACCESS_LEVELS: readonly AccessLevel[] = ["General", "Jefatura", "Gerencia"]
 
@@ -63,7 +67,20 @@ function formatDate(iso: string): string {
 }
 
 function AdminView() {
-  const { documents, addFiles, removeDocument } = useDocuments()
+  const {
+    documents,
+    status,
+    page,
+    pages,
+    total,
+    setPage,
+    reload,
+    queued,
+    addFiles,
+    removeDocument,
+  } = useDocuments()
+  const [toDelete, setToDelete] = useState<DocumentItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [selectedLevel, setSelectedLevel] = useState<AccessLevel>("General")
   const [statusMessage, setStatusMessage] = useState("")
@@ -76,10 +93,18 @@ function AdminView() {
     const result = addFiles(Array.from(fileList), selectedLevel)
     setStatusMessage(
       result.added > 0
-        ? `${result.added} documento(s) añadido(s) con nivel ${selectedLevel}`
+        ? `${result.added} documento(s) en cola de subida con nivel ${selectedLevel}`
         : "",
     )
     setRejected(result.rejected)
+  }
+
+  const confirmDelete = async () => {
+    if (toDelete === null) return
+    setDeleting(true)
+    const ok = await removeDocument(toDelete.id)
+    setDeleting(false)
+    if (ok) setToDelete(null)
   }
 
   const openFileDialog = () => {
@@ -213,6 +238,12 @@ function AdminView() {
             <p role="status" className="text-sm font-medium text-emerald-800 empty:hidden">
               {statusMessage}
             </p>
+            {queued > 0 && (
+              <p role="status" className="flex items-center gap-2 text-sm text-slate-700">
+                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                Subiendo documentos... {queued} pendiente(s)
+              </p>
+            )}
             {rejected.length > 0 && (
               <div
                 role="alert"
@@ -241,12 +272,23 @@ function AdminView() {
               Documentos indexados
             </h2>
             <span className="rounded-sm bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-              {documents.length}{" "}
-              {documents.length === 1 ? "documento" : "documentos"}
+              {total} {total === 1 ? "documento" : "documentos"}
             </span>
           </CardHeader>
           <CardContent className="px-0">
-            {documents.length === 0 ? (
+            {status === "loading" ? (
+              <p role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-slate-600">
+                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                Cargando documentos...
+              </p>
+            ) : status === "error" ? (
+              <div role="alert" className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <p className="text-sm text-red-800">No se pudieron cargar los documentos.</p>
+                <Button type="button" variant="outline" onClick={reload} className={cn("rounded-sm border-slate-500", FOCUS_RING_LIGHT)}>
+                  Reintentar
+                </Button>
+              </div>
+            ) : documents.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
                 <FileText className="size-8 text-slate-600" aria-hidden="true" />
                 <p className="text-sm text-slate-600">
@@ -309,7 +351,22 @@ function AdminView() {
                           {formatDate(doc.uploadedAt)}
                         </TableCell>
                         <TableCell>
-                          {doc.status === "Indexado" ? (
+                          {doc.status === "Error" ? (
+                            <div className="max-w-56">
+                              <Badge
+                                variant="outline"
+                                className="rounded-sm border-red-200 bg-red-50 text-red-700"
+                              >
+                                <AlertCircle aria-hidden="true" />
+                                Error
+                              </Badge>
+                              {doc.errorMessage !== null && (
+                                <p className="mt-1 text-xs break-words text-red-700">
+                                  {doc.errorMessage}
+                                </p>
+                              )}
+                            </div>
+                          ) : doc.status === "Indexado" ? (
                             <Badge
                               variant="outline"
                               className="rounded-sm border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -335,7 +392,7 @@ function AdminView() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeDocument(doc.id)}
+                            onClick={() => setToDelete(doc)}
                             aria-label={`Eliminar documento ${doc.name}`}
                             title="Eliminar documento"
                             className={cn(
@@ -353,7 +410,47 @@ function AdminView() {
               </Table>
             )}
           </CardContent>
+          {status === "ready" && pages > 1 && (
+            <nav
+              aria-label="Paginación de documentos"
+              className="flex items-center justify-between border-t border-slate-200 px-6 py-3"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className={cn("gap-1 rounded-sm border-slate-500", FOCUS_RING_LIGHT)}
+              >
+                <ChevronLeft className="size-4" aria-hidden="true" />
+                Anterior
+              </Button>
+              <span className="text-sm text-slate-700">
+                Página {page} de {pages}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={page >= pages}
+                onClick={() => setPage(page + 1)}
+                className={cn("gap-1 rounded-sm border-slate-500", FOCUS_RING_LIGHT)}
+              >
+                Siguiente
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </Button>
+            </nav>
+          )}
         </Card>
+
+        <ConfirmDialog
+          open={toDelete !== null}
+          title="¿Eliminar documento?"
+          description={`Se eliminará "${toDelete?.name ?? ""}" junto con sus fragmentos indexados. Las citas históricas quedarán sin enlace.`}
+          confirmLabel="Eliminar"
+          busy={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setToDelete(null)}
+        />
       </div>
     </div>
   )

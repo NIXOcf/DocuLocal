@@ -1,83 +1,61 @@
 /**
- * Único módulo autorizado para acceder a localStorage.
+ * Único módulo que accede al almacenamiento del navegador.
  *
- * IMPORTANTE (OWASP A02 / A07): aquí NUNCA se almacenan contraseñas, tokens
- * ni datos sensibles. La sesión guardada es SIMULADA y solo contiene el rol
- * y la caducidad para el prototipo. En producción la sesión debe gestionarla
- * el servidor mediante cookies httpOnly + Secure + SameSite, inaccesibles
- * desde JavaScript.
- *
- * OWASP A08: todo dato leído se trata como no confiable. Se valida con un
- * type guard antes de usarse; si está corrupto o fue manipulado en DevTools,
- * se descarta y se usa el valor por defecto.
+ * El token JWT vive en sessionStorage (se pierde al cerrar la pestaña) junto con su
+ * caducidad. Nunca se guarda en localStorage ni se registra en logs. Una cookie
+ * httpOnly sería más robusta frente a XSS, pero requiere cambios en el backend.
  */
 
-const PREFIX = "doculocal:v2:"
+const AUTH_KEY = "doculocal:auth"
+const LEGACY_PREFIX = "doculocal:v2:"
 
-export const STORAGE_KEYS = {
-  session: "session",
-  conversations: "conversations",
-  documents: "documents",
-} as const
+export interface StoredAuth {
+  token: string
+  expiresAt: number
+}
 
-export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
+function isStoredAuth(value: unknown): value is StoredAuth {
+  if (typeof value !== "object" || value === null) return false
+  const { token, expiresAt } = value as Record<string, unknown>
+  return typeof token === "string" && token !== "" && typeof expiresAt === "number"
+}
 
-function getStore(): Storage | null {
+export function loadAuth(): StoredAuth | null {
   try {
-    return typeof window !== "undefined" ? window.localStorage : null
+    const raw = sessionStorage.getItem(AUTH_KEY)
+    if (raw === null) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (isStoredAuth(parsed) && parsed.expiresAt > Date.now()) return parsed
+    sessionStorage.removeItem(AUTH_KEY)
   } catch {
-    return null
+    // Almacenamiento no disponible o dato corrupto: se trata como sin sesión.
+  }
+  return null
+}
+
+export function saveAuth(auth: StoredAuth): void {
+  try {
+    sessionStorage.setItem(AUTH_KEY, JSON.stringify(auth))
+  } catch {
+    // Sin almacenamiento: la sesión vive solo en memoria.
   }
 }
 
-export function safeRemove(key: StorageKey): void {
+export function clearAuth(): void {
   try {
-    getStore()?.removeItem(PREFIX + key)
+    sessionStorage.removeItem(AUTH_KEY)
   } catch {
-    // Almacenamiento no disponible: no hay nada que borrar.
+    // Nada que borrar.
   }
 }
 
-export function safeGet<T>(
-  key: StorageKey,
-  validator: (value: unknown) => value is T,
-  fallback: T,
-): T {
-  let raw: string | null
+/** Elimina los datos sembrados por el prototipo (claves `doculocal:v2:*`). */
+export function purgeLegacyStorage(): void {
   try {
-    const store = getStore()
-    if (!store) return fallback
-    raw = store.getItem(PREFIX + key)
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(LEGACY_PREFIX))
+      .forEach((key) => localStorage.removeItem(key))
   } catch {
-    return fallback
-  }
-
-  if (raw === null) return fallback
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    safeRemove(key)
-    return fallback
-  }
-
-  if (!validator(parsed)) {
-    safeRemove(key)
-    return fallback
-  }
-  return parsed
-}
-
-export function safeSet(key: StorageKey, value: unknown): boolean {
-  try {
-    const store = getStore()
-    if (!store) return false
-    store.setItem(PREFIX + key, JSON.stringify(value))
-    return true
-  } catch {
-    // Cuota llena, almacenamiento deshabilitado o modo privado:
-    // la aplicación continúa funcionando solo en memoria.
-    return false
+    // Almacenamiento no disponible.
   }
 }

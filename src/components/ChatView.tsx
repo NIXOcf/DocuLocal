@@ -3,21 +3,22 @@ import type { FormEvent, MouseEvent } from "react"
 import {
   Bot,
   FileText,
+  Info,
   Loader2,
   Send,
-  Square,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react"
-import { Navigate, useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import SourceDialog from "@/components/SourceDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useChat } from "@/hooks/useChat"
 import { useReducedMotion } from "@/hooks/useReducedMotion"
+import { ApiError } from "@/lib/api"
 import { FOCUS_RING_LIGHT } from "@/lib/styles"
 import { cn } from "@/lib/utils"
-import type { Feedback, Message } from "@/types"
+import type { Feedback, Message, Source } from "@/types"
 
 const MAX_INPUT_LENGTH = 2000
 
@@ -43,37 +44,47 @@ function AssistantAvatar() {
 function ChatView() {
   const { chatId } = useParams()
   const navigate = useNavigate()
-  const {
-    conversations,
-    streaming,
-    phase,
-    activeConversationId,
-    sendMessage,
-    stopGeneration,
-    setFeedback,
-  } = useChat()
+  const { messagesByConversation, loadMessages, pending, sendMessage, setFeedback } = useChat()
   const reducedMotion = useReducedMotion()
 
   const [input, setInput] = useState("")
   const [feedbackAnnouncement, setFeedbackAnnouncement] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [dialogFilename, setDialogFilename] = useState<string | null>(null)
+  const [dialogSource, setDialogSource] = useState<Source | null>(null)
+  const [loadError, setLoadError] = useState<{ id: string; notFound: boolean } | null>(null)
+  const [retry, setRetry] = useState(0)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const sourceTriggerRef = useRef<HTMLElement | null>(null)
-  const stopHadFocusRef = useRef(false)
 
-  const conversation =
-    chatId !== undefined ? conversations.find((c) => c.id === chatId) : undefined
-  const messages = conversation?.messages ?? []
-  const isGenerating = phase !== "idle"
-  const isGeneratingHere =
-    isGenerating && conversation !== undefined && activeConversationId === conversation.id
-  const streamingText =
-    streaming !== null && conversation !== undefined && streaming.conversationId === conversation.id
-      ? streaming.text
-      : null
+  const cached = chatId !== undefined ? messagesByConversation[chatId] : undefined
+  const hasCache = cached !== undefined
+  const messages = cached ?? []
+  const isGenerating = pending !== null
+  const isGeneratingHere = pending !== null && pending.conversationId === (chatId ?? null)
+  const loadStatus: "loading" | "error" | "notFound" | "ready" =
+    chatId === undefined || hasCache
+      ? "ready"
+      : loadError?.id === chatId
+        ? loadError.notFound
+          ? "notFound"
+          : "error"
+        : "loading"
+
+  // Carga los mensajes de la conversación abierta si aún no están en memoria.
+  useEffect(() => {
+    if (chatId === undefined || hasCache) return
+    let cancelled = false
+    loadMessages(chatId).catch((error: unknown) => {
+      if (!cancelled) {
+        setLoadError({ id: chatId, notFound: error instanceof ApiError && error.status === 404 })
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [chatId, hasCache, loadMessages, retry])
 
   // Auto-scroll al final sin mover el foco.
   useEffect(() => {
@@ -83,61 +94,37 @@ function ChatView() {
       top: container.scrollHeight,
       behavior: reducedMotion ? "auto" : "smooth",
     })
-  }, [messages.length, streamingText, isGeneratingHere, reducedMotion])
+  }, [messages.length, isGeneratingHere, reducedMotion])
 
-  // Si el botón "Detener" tenía el foco y desaparece, el foco vuelve al input.
-  useEffect(() => {
-    if (isGenerating || !stopHadFocusRef.current) return
-    stopHadFocusRef.current = false
-    const active = document.activeElement
-    if (active === null || active === document.body) {
-      inputRef.current?.focus()
-    }
-  }, [isGenerating])
-
-  if (chatId !== undefined && conversation === undefined) {
-    return <Navigate to="/chat" replace />
-  }
-
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (isGenerating) return
-    const id = sendMessage(conversation?.id ?? null, input)
-    if (id === null) return
+    if (isGenerating || loadStatus !== "ready") return
+    const text = input
     setInput("")
-    if (conversation === undefined) {
-      navigate(`/chat/${encodeURIComponent(id)}`, { replace: true })
-    }
+    const ok = await sendMessage(chatId ?? null, text, (id) =>
+      navigate(`/chat/${encodeURIComponent(id)}`, { replace: true }),
+    )
+    // Si falló, se restaura el borrador (salvo que el usuario ya haya escrito otra cosa).
+    if (!ok) setInput((current) => (current === "" ? text : current))
     inputRef.current?.focus()
   }
 
-  const handleStop = () => {
-    stopHadFocusRef.current = false
-    stopGeneration()
-    inputRef.current?.focus()
-  }
-
-  const openSource = (e: MouseEvent<HTMLButtonElement>, filename: string) => {
+  const openSource = (e: MouseEvent<HTMLButtonElement>, source: Source) => {
     sourceTriggerRef.current = e.currentTarget
-    setDialogFilename(filename)
+    setDialogSource(source)
     setDialogOpen(true)
   }
 
   const handleFeedback = (messageId: string, current: Feedback | undefined, value: Feedback) => {
-    if (conversation === undefined) return
+    if (chatId === undefined) return
     const willRemove = current === value
-    setFeedback(conversation.id, messageId, value)
+    void setFeedback(chatId, messageId, value)
     setFeedbackAnnouncement(willRemove ? "Valoración eliminada" : "Valoración registrada")
   }
 
   const visibleMessages = messages.length === 0 ? [WELCOME_MESSAGE] : messages
 
-  const statusText =
-    isGeneratingHere && phase === "searching"
-      ? "Buscando en la base documental"
-      : isGeneratingHere && phase === "streaming"
-        ? "El asistente está escribiendo la respuesta"
-        : ""
+  const statusText = isGeneratingHere ? "Buscando en la base documental" : ""
 
   return (
     <div className="flex h-full flex-col">
@@ -149,6 +136,39 @@ function ChatView() {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
+          {loadStatus === "loading" && (
+            <p role="status" className="flex items-center gap-2 text-sm text-slate-600">
+              <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              Cargando conversación...
+            </p>
+          )}
+          {(loadStatus === "error" || loadStatus === "notFound") && (
+            <div role="alert" className="rounded-sm border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+              {loadStatus === "notFound" ? (
+                <>
+                  <p>La conversación no existe o no tienes acceso a ella.</p>
+                  <Link to="/chat" className="mt-2 inline-block font-medium underline">
+                    Iniciar una conversación nueva
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p>No se pudo cargar la conversación.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setLoadError(null)
+                      setRetry((n) => n + 1)
+                    }}
+                    className={cn("mt-2 rounded-sm border-red-400 bg-white text-red-800", FOCUS_RING_LIGHT)}
+                  >
+                    Reintentar
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           <div
             role="log"
             aria-live="polite"
@@ -156,7 +176,7 @@ function ChatView() {
             aria-label="Conversación"
             className="flex flex-col gap-4"
           >
-            {visibleMessages.map((message) =>
+            {loadStatus === "ready" && visibleMessages.map((message) =>
               message.role === "user" ? (
                 <div key={message.id} className="flex justify-end">
                   <div className="max-w-[70%] whitespace-pre-wrap break-words rounded-sm bg-slate-900 px-4 py-2.5 text-sm leading-relaxed text-white">
@@ -167,7 +187,20 @@ function ChatView() {
               ) : (
                 <div key={message.id} className="flex items-start gap-3">
                   <AssistantAvatar />
-                  <div className="max-w-[70%] rounded-sm border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-800">
+                  <div
+                    className={cn(
+                      "max-w-[70%] rounded-sm border px-4 py-3 text-sm leading-relaxed text-slate-800",
+                      message.grounded === false
+                        ? "border-amber-300 bg-amber-50"
+                        : "border-slate-200 bg-white",
+                    )}
+                  >
+                    {message.grounded === false && (
+                      <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+                        <Info className="size-3.5" aria-hidden="true" />
+                        Sin información en los documentos
+                      </p>
+                    )}
                     <p className="whitespace-pre-wrap break-words">
                       <span className="sr-only">Asistente: </span>
                       {message.content}
@@ -182,18 +215,22 @@ function ChatView() {
                         <div className="flex flex-wrap items-center gap-2">
                           {message.sources?.map((source) => (
                             <button
-                              key={source.id}
+                              key={source.ref}
                               type="button"
                               aria-haspopup="dialog"
-                              aria-label={`Ver fragmento citado de ${source.filename}`}
-                              onClick={(e) => openSource(e, source.filename)}
+                              aria-label={`Ver fragmento citado [${source.ref}] de ${source.filename}`}
+                              disabled={source.id === null}
+                              title={source.id === null ? "El documento fue eliminado" : undefined}
+                              onClick={(e) => openSource(e, source)}
                               className={cn(
-                                "inline-flex min-h-7 items-center gap-1.5 rounded-sm border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-200",
+                                "inline-flex min-h-7 items-center gap-1.5 rounded-sm border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-200 disabled:opacity-60",
                                 FOCUS_RING_LIGHT,
                               )}
                             >
                               <FileText className="size-3.5" aria-hidden="true" />
-                              {source.filename}
+                              <span>[{source.ref}]</span>
+                              <span className="max-w-48 truncate">{source.filename}</span>
+                              {source.page !== null && <span>· p. {source.page}</span>}
                             </button>
                           ))}
                           <div
@@ -252,26 +289,21 @@ function ChatView() {
             )}
           </div>
 
-          {isGeneratingHere && phase === "searching" && (
-            <div className="flex items-start gap-3" aria-hidden="true">
-              <AssistantAvatar />
-              <div className="flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
-                Buscando en la base documental...
+          {isGeneratingHere && pending !== null && (
+            <>
+              <div className="flex justify-end">
+                <div className="max-w-[70%] whitespace-pre-wrap break-words rounded-sm bg-slate-900 px-4 py-2.5 text-sm leading-relaxed text-white">
+                  {pending.text}
+                </div>
               </div>
-            </div>
-          )}
-
-          {isGeneratingHere && phase === "streaming" && streamingText !== null && (
-            <div className="flex items-start gap-3" aria-hidden="true">
-              <AssistantAvatar />
-              <div className="max-w-[70%] rounded-sm border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-800">
-                <p className="whitespace-pre-wrap break-words">
-                  {streamingText}
-                  <span className="ml-0.5 inline-block h-4 w-1.5 translate-y-0.5 bg-slate-900 motion-safe:animate-pulse" />
-                </p>
+              <div className="flex items-start gap-3" aria-hidden="true">
+                <AssistantAvatar />
+                <div className="flex items-center gap-2 rounded-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                  <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+                  Buscando en la base documental...
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <p role="status" className="sr-only">
@@ -311,27 +343,10 @@ function ChatView() {
           <span id="chat-input-help" className="sr-only">
             Pulsa Enter para enviar
           </span>
-          {isGenerating && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleStop}
-              onFocus={() => {
-                stopHadFocusRef.current = true
-              }}
-              className={cn(
-                "h-11 gap-2 rounded-sm border-slate-500 bg-white px-4 text-slate-900 hover:bg-slate-100",
-                FOCUS_RING_LIGHT,
-              )}
-            >
-              <Square className="size-4" fill="currentColor" aria-hidden="true" />
-              Detener generación
-            </Button>
-          )}
           <Button
             type="submit"
             aria-label="Enviar mensaje"
-            disabled={isGenerating || input.trim() === ""}
+            disabled={isGenerating || loadStatus !== "ready" || input.trim() === ""}
             className={cn(
               "h-11 gap-2 rounded-sm bg-slate-900 px-4 text-white hover:bg-slate-800",
               FOCUS_RING_LIGHT,
@@ -349,7 +364,7 @@ function ChatView() {
       <SourceDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        filename={dialogFilename}
+        source={dialogSource}
         returnFocusRef={sourceTriggerRef}
       />
     </div>

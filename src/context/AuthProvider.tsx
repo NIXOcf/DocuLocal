@@ -1,87 +1,93 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import { AuthContext } from "@/context/AuthContext"
 import type { AuthContextValue } from "@/context/AuthContext"
-import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage"
-import { isUserSession } from "@/lib/validators"
-import type { Role, UserSession } from "@/types"
+import { request, setUnauthorizedHandler } from "@/lib/api"
+import { clearAuth, loadAuth, purgeLegacyStorage, saveAuth } from "@/lib/storage"
+import type { UserSession } from "@/types"
 
 /**
- * AUTENTICACIÓN SIMULADA.
- *
- * ADVERTENCIA (OWASP A01 / A07): el rol vive en el cliente (estado de React y
- * almacenamiento del navegador) y cualquier usuario puede manipularlo desde DevTools. Las
- * restricciones de esta interfaz son solo de experiencia de usuario. El
- * control de acceso basado en roles (RBAC) real DEBE aplicarse en el backend,
- * validando la identidad y los permisos en cada petición.
+ * Sesión real contra el backend (JWT de 8 h en sessionStorage).
+ * Las restricciones de la interfaz por rol son solo de experiencia de usuario:
+ * el RBAC lo aplica el backend en cada petición.
  */
 
-const SESSION_DURATION_MS = 8 * 60 * 60 * 1000
-
-const DISPLAY_NAMES: Record<Role, string> = {
-  employee: "Empleado",
-  admin: "Administrador",
+interface LoginResponse {
+  access_token: string
+  expires_in: number
+  user: UserSession
 }
 
-function loadSession(): UserSession | null {
-  const stored = safeGet<UserSession | null>(
-    STORAGE_KEYS.session,
-    (value): value is UserSession | null => isUserSession(value),
-    null,
-  )
-  if (stored === null) return null
-  const now = Date.now()
-  if (stored.expiresAt <= now || stored.loggedAt > now) {
-    safeRemove(STORAGE_KEYS.session)
-    return null
+function toSession(user: UserSession): UserSession {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    role: user.role,
+    accessLevel: user.accessLevel,
+    department: user.department ?? null,
   }
-  // El displayName se deriva del rol: no se confía en el valor almacenado.
-  return { ...stored, displayName: DISPLAY_NAMES[stored.role] }
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<UserSession | null>(loadSession)
-  const expiryTimeoutRef = useRef<number | null>(null)
+  const [session, setSession] = useState<UserSession | null>(null)
+  const [expiresAt, setExpiresAt] = useState<number | null>(() => loadAuth()?.expiresAt ?? null)
+  const [restoring, setRestoring] = useState(() => loadAuth() !== null)
 
   const logout = useCallback(() => {
-    safeRemove(STORAGE_KEYS.session)
+    clearAuth()
     setSession(null)
+    setExpiresAt(null)
   }, [])
 
-  const login = useCallback((role: Role) => {
-    const now = Date.now()
-    const next: UserSession = {
-      role,
-      displayName: DISPLAY_NAMES[role],
-      loggedAt: now,
-      expiresAt: now + SESSION_DURATION_MS,
-    }
-    safeSet(STORAGE_KEYS.session, next)
-    setSession(next)
-  }, [])
-
-  // Cierra la sesión automáticamente cuando caduca.
   useEffect(() => {
-    if (session === null) return
-    const remaining = Math.max(0, session.expiresAt - Date.now())
-    expiryTimeoutRef.current = window.setTimeout(logout, remaining)
+    purgeLegacyStorage()
+    setUnauthorizedHandler(logout)
+    return () => setUnauthorizedHandler(null)
+  }, [logout])
+
+  // Restaura la sesión guardada validando el token con el backend.
+  useEffect(() => {
+    if (loadAuth() === null) return
+    let cancelled = false
+    request<UserSession>("/auth/me")
+      .then((user) => !cancelled && setSession(toSession(user)))
+      .catch(() => !cancelled && logout())
+      .finally(() => !cancelled && setRestoring(false))
     return () => {
-      if (expiryTimeoutRef.current !== null) {
-        clearTimeout(expiryTimeoutRef.current)
-        expiryTimeoutRef.current = null
-      }
+      cancelled = true
     }
-  }, [session, logout])
+  }, [logout])
+
+  // Cierra la sesión automáticamente cuando caduca el token.
+  useEffect(() => {
+    if (expiresAt === null) return
+    const timeout = window.setTimeout(logout, Math.max(0, expiresAt - Date.now()))
+    return () => clearTimeout(timeout)
+  }, [expiresAt, logout])
+
+  const login = useCallback(async (email: string, password: string) => {
+    const data = await request<LoginResponse>("/auth/login", {
+      method: "POST",
+      json: { email, password },
+      auth: false,
+    })
+    const expires = Date.now() + data.expires_in * 1000
+    saveAuth({ token: data.access_token, expiresAt: expires })
+    setExpiresAt(expires)
+    setSession(toSession(data.user))
+  }, [])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
+      restoring,
       isAuthenticated: session !== null,
       isAdmin: session?.role === "admin",
       login,
       logout,
     }),
-    [session, login, logout],
+    [session, restoring, login, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

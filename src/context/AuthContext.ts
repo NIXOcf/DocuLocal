@@ -1,11 +1,13 @@
 import { createContext } from "react"
-import type { Role, UserSession } from "@/types"
+import type { UserSession } from "@/types"
 
 export interface AuthContextValue {
   session: UserSession | null
+  /** true mientras se restaura la sesión guardada con `/auth/me`. */
+  restoring: boolean
   isAuthenticated: boolean
   isAdmin: boolean
-  login: (role: Role) => void
+  login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
 
