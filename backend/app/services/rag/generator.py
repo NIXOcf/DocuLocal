@@ -1,5 +1,4 @@
 """Generación fundamentada con citas [n] y verificación posterior de las citas."""
-import html
 import re
 
 from app.core.config import get_settings
@@ -26,11 +25,16 @@ _CITATION_RE = re.compile(r"(\s?)\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 HISTORY_WINDOW = 4
 
 
+_TAG_CHARS = str.maketrans({"<": "&lt;", ">": "&gt;"})
+_ATTR_CHARS = str.maketrans({"<": "&lt;", ">": "&gt;", '"': "&quot;"})
+
+
 def build_context(chunks: list[RetrievedChunk]) -> str:
-    # Se escapan contenido y nombre de archivo: un documento no puede cerrar la etiqueta ni inyectar otras.
+    # Solo se neutraliza lo que permitiría cerrar o abrir etiquetas (< > y, en el atributo, "); el & queda tal
+    # cual para que el LLM no lo copie escapado en su respuesta.
     return "\n\n".join(
-        f'<fragmento n="{i}" archivo="{html.escape(c.filename, quote=True)}" pagina="{c.page if c.page else "s/n"}">\n'
-        f'{html.escape(c.context, quote=True)}\n</fragmento>'
+        f'<fragmento n="{i}" archivo="{c.filename.translate(_ATTR_CHARS)}" pagina="{c.page if c.page else "s/n"}">\n'
+        f'{c.context.translate(_TAG_CHARS)}\n</fragmento>'
         for i, c in enumerate(chunks, start=1)
     )
 

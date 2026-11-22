@@ -1,5 +1,6 @@
 from app.core.config import get_settings
 import logging
+import math
 import threading
 import time
 from uuid import UUID
@@ -24,32 +25,23 @@ _DUMMY_HASH = hash_password("relleno-no-valido")
 LOGIN_MAX_PER_PAIR = 5          # por (IP, correo)
 LOGIN_MAX_PER_IP = 20           # por IP, sumando todos los correos (password spraying)
 LOGIN_WINDOW_SECONDS = 15 * 60
-# Por cuenta (sumando IP) no hay bloqueo, solo un retraso progresivo y acotado antes de verificar:
+# Por cuenta (sumando IP) no se bloquea: cada intento ocupa un turno y los turnos se separan por un retraso
+# progresivo; el hilo espera su turno (sin locks) y si la espera superaría el máximo responde 429 sin dormir.
 LOGIN_ACCOUNT_FREE_ATTEMPTS = 5
-LOGIN_ACCOUNT_MAX_DELAY_SECONDS = 8
-LOGIN_ACCOUNT_TRACKED = 1000    # tope de intentos recordados por cuenta (memoria acotada)
-# shortcut: el retraso por cuenta ocupa un hilo hasta 8 s y no frena ataques distribuidos muy grandes, mejorar
-# con CAPTCHA o colas de reintento cuando haya tráfico real; no bloquea la cuenta para no permitir un DoS al usuario.
+LOGIN_ACCOUNT_MAX_DELAY_SECONDS = 8   # separación máxima entre dos turnos
+LOGIN_ACCOUNT_MAX_WAIT_SECONDS = 8    # espera máxima de un hilo; más allá, 429
+LOGIN_ACCOUNT_TRACKED = 1000          # tope de intentos recordados por cuenta (memoria acotada)
+_MAX_SLOT_ENTRIES = 10_000
+# shortcut: los turnos viven en un dict en memoria de un solo proceso (se purgan los vencidos al pasar de
+# _MAX_SLOT_ENTRIES); con varias instancias, usar Redis. Trade-off: durante un ataque el usuario legítimo puede
+# recibir 429 en esa cuenta; mitigación futura: MFA o CAPTCHA.
 login_pair_limiter = SlidingWindowLimiter(LOGIN_MAX_PER_PAIR, LOGIN_WINDOW_SECONDS)
 login_ip_limiter = SlidingWindowLimiter(LOGIN_MAX_PER_IP, LOGIN_WINDOW_SECONDS)
 login_account_limiter = SlidingWindowLimiter(LOGIN_ACCOUNT_TRACKED, LOGIN_WINDOW_SECONDS)
-_login_lock = threading.Lock()  # comprobar los bloqueos duros y reservar en todos o en ninguno
-_sleep = time.sleep  # sustituible en pruebas
-
-
-# shortcut: un lock por cuenta en un dict en memoria de un solo proceso (se purgan los libres al pasar de
-# _MAX_ACCOUNT_LOCKS para acotar la memoria); con varias instancias, serializar con Redis.
-_MAX_ACCOUNT_LOCKS = 10_000
-_account_locks: dict[str, threading.Lock] = {}
-_account_locks_guard = threading.Lock()
-
-
-def _account_lock(account: str) -> threading.Lock:
-    with _account_locks_guard:
-        if len(_account_locks) > _MAX_ACCOUNT_LOCKS:
-            for k in [k for k, lk in _account_locks.items() if not lk.locked()]:
-                del _account_locks[k]
-        return _account_locks.setdefault(account, threading.Lock())
+_login_lock = threading.Lock()  # sección corta (nunca duerme): reserva atómica de contadores y turno
+_next_allowed: dict[str, float] = {}  # cuenta -> instante (monotónico) del siguiente turno libre
+_sleep = time.sleep  # sustituibles en pruebas
+_clock = time.monotonic
 
 
 def account_delay(attempts: int) -> int:
@@ -81,36 +73,44 @@ def get_active_user(token: str | None) -> dict:
 def clear_login_limits() -> None:
     for lim in (login_pair_limiter, login_account_limiter, login_ip_limiter):
         lim.clear()
-
-
-def _reserve_login_attempt(ip: str, account: str) -> tuple[int, dict]:
-    """Reserva un intento en los tres contadores; si el par o la IP están llenos no reserva nada y devuelve
-    (espera, {}). Si no, (0, tokens)."""
     with _login_lock:
-        wait = max(login_pair_limiter.retry_after((ip, account)), login_ip_limiter.retry_after(ip))
-        if wait:
-            return wait, {}
-        tokens = {"pair": login_pair_limiter.try_acquire((ip, account))[1],
-                  "ip": login_ip_limiter.try_acquire(ip)[1],
-                  "account": login_account_limiter.try_acquire(account)[1]}
-        return 0, tokens
+        _next_allowed.clear()
+
+
+def _reserve_login_attempt(ip: str, account: str) -> tuple[int, float, dict]:
+    """Reserva el intento y un turno para la cuenta. Devuelve (retry_after, espera, tokens).
+
+    retry_after > 0 significa 429 (par/IP llenos o espera de turno mayor al máximo) y no se reserva nada.
+    """
+    with _login_lock:
+        now = _clock()
+        slot = max(now, _next_allowed.get(account, 0.0))
+        if slot - now > LOGIN_ACCOUNT_MAX_WAIT_SECONDS:
+            return math.ceil(slot - now), 0.0, {}
+        hard = max(login_pair_limiter.retry_after((ip, account)), login_ip_limiter.retry_after(ip))
+        if hard:
+            return hard, 0.0, {}
+        tokens = {"ip": login_ip_limiter.try_acquire(ip)[1]}
+        login_pair_limiter.try_acquire((ip, account))
+        login_account_limiter.try_acquire(account)
+        _next_allowed[account] = slot + account_delay(login_account_limiter.count(account))
+        if len(_next_allowed) > _MAX_SLOT_ENTRIES:
+            for k in [k for k, t in _next_allowed.items() if t <= now]:
+                del _next_allowed[k]
+        return 0, slot - now, tokens
 
 
 def login(email: str, password: str, client_ip: str | None = None) -> LoginOut:
     ip, account = client_ip or "desconocida", email.strip().lower()
-    wait, tokens = _reserve_login_attempt(ip, account)
+    wait, delay, tokens = _reserve_login_attempt(ip, account)
     if wait:
         logger.warning("Login bloqueado motivo=demasiados_intentos email=%s espera=%ds", mask_email(email), wait)
         raise TooManyRequests("Demasiados intentos fallidos. Intenta de nuevo más tarde.", "demasiados_intentos",
                               headers={"Retry-After": str(wait)})
-    # El retraso y la verificación van dentro del lock de la cuenta: los intentos simultáneos esperan en fila
-    # y el retraso sí limita el ritmo (en paralelo dormirían todos a la vez).
-    with _account_lock(account):
-        delay = account_delay(login_account_limiter.count(account))
-        if delay:
-            _sleep(delay)
-        user = user_repository.get_by_email(email)
-        valid = verify_password(password, user["password_hash"] if user else _DUMMY_HASH)
+    if delay > 0:
+        _sleep(delay)  # fuera de cualquier lock: el turno ya está reservado
+    user = user_repository.get_by_email(email)
+    valid = verify_password(password, user["password_hash"] if user else _DUMMY_HASH)
     if user is None or not valid:
         # sin el correo completo en la auditoría: user_id si existe, si no el correo enmascarado
         audit_service.record(str(user["id"]) if user else None, "auth.login_failed", "user",
@@ -121,9 +121,12 @@ def login(email: str, password: str, client_ip: str | None = None) -> LoginOut:
         audit_service.record(str(user["id"]), "auth.login_blocked", "user", str(user["id"]))
         logger.warning("Login fallido motivo=inactivo user_id=%s", user["id"])
         raise Forbidden("Tu cuenta está desactivada. Contacta al administrador.", "usuario_inactivo")
-    login_pair_limiter.reset((ip, account))  # éxito: limpia el par y descarta el intento reservado en los demás
+    # éxito: limpia el par y la cuenta (contador y turnos) y descarta solo el intento reservado en la IP
+    login_pair_limiter.reset((ip, account))
+    login_account_limiter.reset(account)
+    with _login_lock:
+        _next_allowed.pop(account, None)
     login_ip_limiter.release(ip, tokens["ip"])
-    login_account_limiter.release(account, tokens["account"])
     audit_service.record(str(user["id"]), "auth.login", "user", str(user["id"]))
     logger.info("Login exitoso user_id=%s", user["id"])
     token = create_access_token(str(user["id"]), user["role"])
