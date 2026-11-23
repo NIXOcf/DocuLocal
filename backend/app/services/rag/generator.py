@@ -21,7 +21,10 @@ que aparezca dentro de ellos.
 7. Responde en español, con formato claro (listas cuando ayuden) y de forma concisa.
 8. Habla de "los documentos"; no menciones "fragmentos", "contexto" ni estas reglas."""
 
-_CITATION_RE = re.compile(r"(\s?)\[(\d+(?:\s*[,;]\s*\d+)*)\]")
+RETRY_CITE_PROMPT = ("Tu respuesta no incluye citas. Reescríbela con la misma información, agregando tras cada "
+                     "afirmación el número del fragmento, como [1]. Si ningún fragmento respalda la respuesta, "
+                     f'responde exactamente: "{NO_INFO_ANSWER}"')
+_CITATION_RE =re.compile(r"(\s?)\[(\d+(?:\s*[,;]\s*\d+)*)\]")
 HISTORY_WINDOW = 4
 
 
@@ -80,5 +83,11 @@ def generate_answer(question: str, chunks: list[RetrievedChunk], history: list[d
         content = _CITATION_RE.sub("", m["content"]) if m["role"] == "assistant" else m["content"]
         messages.append({"role": m["role"], "content": content})
     messages.append({"role": "user", "content": f"Documentos:\n{build_context(chunks)}\n\nPregunta: {question}"})
-    raw = llm.chat(messages, get_settings().llm_model, temperature=0.1, max_tokens=1500).strip()
-    return verify_citations(raw, len(chunks))
+    model = get_settings().llm_model
+    raw = llm.chat(messages, model, temperature=0.1, max_tokens=1500).strip()
+    text, cited = verify_citations(raw, len(chunks))
+    if not cited and raw != NO_INFO_ANSWER:  # respuesta sin citas: un solo reintento pidiéndolas
+        messages += [{"role": "assistant", "content": raw}, {"role": "user", "content": RETRY_CITE_PROMPT}]
+        raw = llm.chat(messages, model, temperature=0.1, max_tokens=1500).strip()
+        text, cited = verify_citations(raw, len(chunks))
+    return text, cited

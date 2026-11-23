@@ -21,7 +21,9 @@ def _probe_llm() -> str:
         return "sin_configurar"
     try:
         r = httpx.get(f"{s.llm_base_url.rstrip('/')}/models", timeout=3,
-                      headers={"Authorization": f"Bearer {s.groq_api_key or 'sin-clave'}"})
+                      headers={"Authorization": f"Bearer {s.groq_api_key or 'sin-clave'}",
+                               # Anthropic (modo compatible) exige estas dos cabeceras; Groq y llama.cpp las ignoran
+                               "x-api-key": s.groq_api_key, "anthropic-version": "2023-06-01"})
     except httpx.HTTPError as exc:
         logger.warning("LLM no disponible modo=%s: %s", s.llm_mode, type(exc).__name__)
         return "no_disponible"

@@ -52,14 +52,17 @@ class LLMClient:
     def chat(self, messages: list[dict], model: str, temperature: float = 0.1, json_mode: bool = False,
              max_tokens: int = 1500) -> str:
         extra: dict = {}
-        if json_mode:
+        if model.startswith("claude"):
+            # Anthropic (modo compatible) rechaza temperature y response_format=json_object; el JSON lo pide el prompt
+            extra["temperature"] = openai.NOT_GIVEN
+        elif json_mode:
             extra["response_format"] = {"type": "json_object"}
         if model.startswith("openai/gpt-oss") and not get_settings().llm_is_local:
             extra["reasoning_effort"] = "low"  # solo Groq: evita gastar tokens razonando
         started = time.perf_counter()
         try:
             resp = _get_client().chat.completions.create(
-                model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, **extra
+                model=model, messages=messages, **{"temperature": temperature, **extra}, max_tokens=max_tokens
             )
         except openai.OpenAIError as exc:  # red, timeout, 4xx/5xx del proveedor
             logger.error("Falló la llamada al LLM modelo=%s ms=%d: %s [%s]", model,

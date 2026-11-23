@@ -18,7 +18,7 @@ def _get_model() -> TextCrossEncoder:
         if _model is None:
             name, started = get_settings().rerank_model, time.perf_counter()
             try:
-                _model = TextCrossEncoder(name)
+                _model = TextCrossEncoder(name, threads=6)  # núcleos físicos del Ryzen 5 4650G; 12 hilos lógicos compiten
             except Exception as exc:
                 logger.error("No se pudo cargar el modelo reranker %s (%s): la primera vez se descarga; "
                              "revisa internet y el espacio en disco", name, type(exc).__name__)

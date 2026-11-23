@@ -71,3 +71,21 @@ def test_diversify_limits_per_document_and_total():
     out = diversify(items, max_per_doc=3, limit=10)
     assert [i.n for i in out] == [0, 1, 2, 4, 5, 6]  # el 4.º de A se descarta
     assert len(diversify(items, max_per_doc=3, limit=2)) == 2
+
+
+def test_generate_answer_reintenta_una_vez_si_no_hay_citas(monkeypatch):
+    from app.services.rag import generator
+    respuestas = iter(["El contrato fija la remuneración.", "El contrato fija la remuneración [1]."])
+    llamadas = []
+    monkeypatch.setattr(generator.llm, "chat", lambda m, *a, **k: (llamadas.append(m), next(respuestas))[1])
+    chunk = SimpleNamespace(filename="07.pdf", page=2, context="remuneración mensual")
+    text, cited = generator.generate_answer("¿Cuánto gano?", [chunk], [])
+    assert cited == [1] and len(llamadas) == 2
+
+
+def test_generate_answer_no_reintenta_con_respuesta_fija(monkeypatch):
+    from app.services.rag import generator
+    llamadas = []
+    monkeypatch.setattr(generator.llm, "chat", lambda m, *a, **k: (llamadas.append(m), generator.NO_INFO_ANSWER)[1])
+    chunk = SimpleNamespace(filename="07.pdf", page=2, context="x")
+    assert generator.generate_answer("q", [chunk], [])[1] == [] and len(llamadas) == 1
