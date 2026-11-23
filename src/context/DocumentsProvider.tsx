@@ -9,7 +9,7 @@ import type {
 } from "@/context/DocumentsContext"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/useToast"
-import { ApiError, errorMessage, request } from "@/lib/api"
+import { ApiError, errorMessage, isAbort, request, uploadWithProgress } from "@/lib/api"
 import type { Page } from "@/lib/api"
 import { sanitizeFilename, validateUpload } from "@/lib/sanitize"
 import type { AccessLevel, DocumentItem } from "@/types"
@@ -38,18 +38,24 @@ function DocumentsProvider({ children }: { children: ReactNode }) {
   const documentsRef = useRef(documents)
   const queueRef = useRef<QueueItem[]>([])
   const runningRef = useRef(false)
+  const abortRef = useRef<AbortController | null>(null)
+  const [progress, setProgress] = useState<number | null>(null)
 
   useEffect(() => {
     documentsRef.current = documents
   }, [documents])
 
-  // Al desmontar (cambio de usuario) se descarta lo que quede en cola.
+  // Al desmontar (cambio de usuario) se descarta la cola y se cancela la subida en curso.
   useEffect(() => {
     const queue = queueRef
+    const abort = abortRef
     return () => {
       queue.current = []
+      abort.current?.abort()
     }
   }, [])
+
+  const cancelUpload = useCallback(() => abortRef.current?.abort(), [])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -111,12 +117,17 @@ function DocumentsProvider({ children }: { children: ReactNode }) {
         const form = new FormData()
         form.append("file", file)
         form.append("accessLevel", accessLevel)
-        await request<DocumentItem>("/documents", { method: "POST", form })
+        const controller = new AbortController()
+        abortRef.current = controller
+        setProgress(0)
+        await uploadWithProgress<DocumentItem>("/documents", form, setProgress, controller.signal)
         setPage(1)
         setVersion((v) => v + 1)
       } catch (error) {
-        notify("error", `${sanitizeFilename(file.name)}: ${errorMessage(error)}`)
+        if (!isAbort(error)) notify("error", `${sanitizeFilename(file.name)}: ${errorMessage(error)}`)
       }
+      abortRef.current = null
+      setProgress(null)
       queueRef.current.shift()
       setQueued(queueRef.current.length)
     }
@@ -178,10 +189,12 @@ function DocumentsProvider({ children }: { children: ReactNode }) {
       setPage,
       reload,
       queued,
+      progress,
+      cancelUpload,
       addFiles,
       removeDocument,
     }),
-    [documents, status, page, pages, total, reload, queued, addFiles, removeDocument],
+    [documents, status, page, pages, total, reload, queued, progress, cancelUpload, addFiles, removeDocument],
   )
 
   return <DocumentsContext.Provider value={value}>{children}</DocumentsContext.Provider>

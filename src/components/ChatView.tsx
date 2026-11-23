@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import type { FormEvent, MouseEvent } from "react"
-import {
-  Bot,
-  FileText,
-  Info,
-  Loader2,
-  Send,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react"
+import { Bot, Check, Copy, FileText, Info, Loader2, Send } from "lucide-react"
+import Markdown from "react-markdown"
+import type { Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import SourceDialog from "@/components/SourceDialog"
 import { Button } from "@/components/ui/button"
@@ -18,7 +13,7 @@ import { useReducedMotion } from "@/hooks/useReducedMotion"
 import { ApiError } from "@/lib/api"
 import { FOCUS_RING_LIGHT } from "@/lib/styles"
 import { cn } from "@/lib/utils"
-import type { Feedback, Message, Source } from "@/types"
+import type { Message, Source } from "@/types"
 
 const MAX_INPUT_LENGTH = 2000
 
@@ -41,14 +36,124 @@ function AssistantAvatar() {
   )
 }
 
+// Quita `node` (prop interno de react-markdown) para no pasarlo al DOM.
+function clean<T extends object>(props: T): Omit<T, "node"> {
+  const { node: _node, ...rest } = props as T & { node?: unknown }
+  return rest
+}
+
+const mdBase: Components = {
+  p: (p) => <p className="mb-2 break-words last:mb-0" {...clean(p)} />,
+  ul: (p) => <ul className="mb-2 list-disc pl-5 last:mb-0" {...clean(p)} />,
+  ol: (p) => <ol className="mb-2 list-decimal pl-5 last:mb-0" {...clean(p)} />,
+  li: (p) => <li className="mb-0.5" {...clean(p)} />,
+  strong: (p) => <strong className="font-semibold" {...clean(p)} />,
+  h1: ({ children }) => <h3 className="mb-2 text-base font-semibold">{children}</h3>,
+  h2: ({ children }) => <h3 className="mb-2 text-base font-semibold">{children}</h3>,
+  h3: ({ children }) => <h4 className="mb-1 text-sm font-semibold">{children}</h4>,
+  code: (p) => <code className="rounded-sm bg-slate-100 px-1 py-0.5 font-mono text-xs" {...clean(p)} />,
+  table: (p) => (
+    <div className="mb-2 overflow-x-auto">
+      <table className="w-full border-collapse text-xs" {...clean(p)} />
+    </div>
+  ),
+  th: (p) => <th className="border border-slate-300 bg-slate-100 px-2 py-1 text-left" {...clean(p)} />,
+  td: (p) => <td className="border border-slate-300 px-2 py-1" {...clean(p)} />,
+  img: () => null,
+}
+
+function AssistantMarkdown({
+  content,
+  sources,
+  onCite,
+}: {
+  content: string
+  sources: Source[]
+  onCite: (e: MouseEvent<HTMLButtonElement>, source: Source) => void
+}) {
+  // Las citas [n] con fuente existente pasan a enlaces internos #cite-n.
+  // El primer grupo captura código (``` o `) para dejarlo intacto.
+  const text = content.replace(
+    /(```[\s\S]*?```|`[^`\n]*`)|\[(\d+(?:\s*,\s*\d+)*)\](?!\()/g,
+    (m, code: string | undefined, nums: string | undefined) => {
+      if (code !== undefined || nums === undefined) return m
+      const list = nums.split(",").map((n) => n.trim())
+      if (!list.every((n) => sources.some((s) => s.ref === Number(n)))) return m
+      return list.map((n) => `[${n}](#cite-${n})`).join("")
+    },
+  )
+  const components: Components = {
+    ...mdBase,
+    a: ({ href, children }) => {
+      const ref = href?.startsWith("#cite-") ? Number(href.slice(6)) : null
+      const source = ref === null ? undefined : sources.find((s) => s.ref === ref)
+      if (source !== undefined) {
+        return (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-label={`Ver fuente [${source.ref}]`}
+            disabled={source.id === null}
+            onClick={(e) => onCite(e, source)}
+            className={cn(
+              "mx-0.5 inline-flex min-w-5 items-center justify-center rounded-sm border border-slate-300 bg-slate-100 px-1 align-baseline text-xs font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-60",
+              FOCUS_RING_LIGHT,
+            )}
+          >
+            {children}
+          </button>
+        )
+      }
+      if (href === undefined || !/^https?:\/\//i.test(href)) return <>{children}</>
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+          {children}
+        </a>
+      )
+    },
+  }
+  return (
+    <Markdown remarkPlugins={[remarkGfm]} components={components}>
+      {text}
+    </Markdown>
+  )
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
+  }
+  return (
+    <button
+      type="button"
+      aria-label={copied ? "Respuesta copiada" : "Copiar respuesta"}
+      title="Copiar respuesta"
+      onClick={() => void copy()}
+      className={cn(
+        "ml-auto inline-flex size-8 items-center justify-center rounded-sm border border-slate-300 bg-white text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-100",
+        FOCUS_RING_LIGHT,
+      )}
+    >
+      {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+    </button>
+  )
+}
+
 function ChatView() {
   const { chatId } = useParams()
   const navigate = useNavigate()
-  const { messagesByConversation, loadMessages, pending, sendMessage, setFeedback } = useChat()
+  const { messagesByConversation, loadMessages, pending, sendMessage } = useChat()
   const reducedMotion = useReducedMotion()
 
   const [input, setInput] = useState("")
-  const [feedbackAnnouncement, setFeedbackAnnouncement] = useState("")
+  const [dialogAnswer, setDialogAnswer] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogSource, setDialogSource] = useState<Source | null>(null)
   const [loadError, setLoadError] = useState<{ id: string; notFound: boolean } | null>(null)
@@ -109,17 +214,11 @@ function ChatView() {
     inputRef.current?.focus()
   }
 
-  const openSource = (e: MouseEvent<HTMLButtonElement>, source: Source) => {
+  const openSource = (e: MouseEvent<HTMLButtonElement>, source: Source, answer: string) => {
     sourceTriggerRef.current = e.currentTarget
+    setDialogAnswer(answer)
     setDialogSource(source)
     setDialogOpen(true)
-  }
-
-  const handleFeedback = (messageId: string, current: Feedback | undefined, value: Feedback) => {
-    if (chatId === undefined) return
-    const willRemove = current === value
-    void setFeedback(chatId, messageId, value)
-    setFeedbackAnnouncement(willRemove ? "Valoración eliminada" : "Valoración registrada")
   }
 
   const visibleMessages = messages.length === 0 ? [WELCOME_MESSAGE] : messages
@@ -134,7 +233,7 @@ function ChatView() {
         </h1>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
+      <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-4xl flex-col gap-4">
           {loadStatus === "loading" && (
             <p role="status" className="flex items-center gap-2 text-sm text-slate-600">
@@ -201,10 +300,14 @@ function ChatView() {
                         Sin información en los documentos
                       </p>
                     )}
-                    <p className="whitespace-pre-wrap break-words">
+                    <div>
                       <span className="sr-only">Asistente: </span>
-                      {message.content}
-                    </p>
+                      <AssistantMarkdown
+                        content={message.content}
+                        sources={message.sources ?? []}
+                        onCite={(e, source) => openSource(e, source, message.content)}
+                      />
+                    </div>
                     {message.id !== WELCOME_MESSAGE.id && (
                       <div className="mt-3 border-t border-slate-200 pt-3">
                         {message.sources && message.sources.length > 0 && (
@@ -212,6 +315,14 @@ function ChatView() {
                             Fuentes citadas:
                           </p>
                         )}
+                        {message.sources !== undefined &&
+                          message.sources.length > 0 &&
+                          message.sources.every((source) => source.id === null) && (
+                            <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-600">
+                              <Info className="size-3.5" aria-hidden="true" />
+                              Basada en documentos que ya no están disponibles.
+                            </p>
+                          )}
                         <div className="flex flex-wrap items-center gap-2">
                           {message.sources?.map((source) => (
                             <button
@@ -221,7 +332,7 @@ function ChatView() {
                               aria-label={`Ver fragmento citado [${source.ref}] de ${source.filename}`}
                               disabled={source.id === null}
                               title={source.id === null ? "El documento fue eliminado" : undefined}
-                              onClick={(e) => openSource(e, source)}
+                              onClick={(e) => openSource(e, source, message.content)}
                               className={cn(
                                 "inline-flex min-h-7 items-center gap-1.5 rounded-sm border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-200 disabled:opacity-60",
                                 FOCUS_RING_LIGHT,
@@ -233,53 +344,7 @@ function ChatView() {
                               {source.page !== null && <span>· p. {source.page}</span>}
                             </button>
                           ))}
-                          <div
-                            role="group"
-                            aria-label="Valorar esta respuesta"
-                            className="ml-auto flex items-center gap-1.5"
-                          >
-                            {(
-                              [
-                                {
-                                  value: "up",
-                                  label: "Marcar respuesta como útil",
-                                  Icon: ThumbsUp,
-                                },
-                                {
-                                  value: "down",
-                                  label: "Marcar respuesta como no útil",
-                                  Icon: ThumbsDown,
-                                },
-                              ] as const
-                            ).map(({ value, label, Icon }) => {
-                              const pressed = message.feedback === value
-                              return (
-                                <button
-                                  key={value}
-                                  type="button"
-                                  aria-pressed={pressed}
-                                  aria-label={label}
-                                  title={label}
-                                  onClick={() =>
-                                    handleFeedback(message.id, message.feedback, value)
-                                  }
-                                  className={cn(
-                                    "inline-flex size-8 items-center justify-center rounded-sm border transition-colors",
-                                    FOCUS_RING_LIGHT,
-                                    pressed
-                                      ? "border-2 border-slate-900 bg-slate-900 text-white"
-                                      : "border-slate-300 bg-white text-slate-700 hover:border-slate-500 hover:bg-slate-100",
-                                  )}
-                                >
-                                  <Icon
-                                    className="size-4"
-                                    fill={pressed ? "currentColor" : "none"}
-                                    aria-hidden="true"
-                                  />
-                                </button>
-                              )
-                            })}
-                          </div>
+                          <CopyButton text={message.content} />
                         </div>
                       </div>
                     )}
@@ -308,9 +373,6 @@ function ChatView() {
 
           <p role="status" className="sr-only">
             {statusText}
-          </p>
-          <p role="status" className="sr-only">
-            {feedbackAnnouncement}
           </p>
         </div>
       </div>
@@ -365,6 +427,7 @@ function ChatView() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         source={dialogSource}
+        answer={dialogAnswer}
         returnFocusRef={sourceTriggerRef}
       />
     </div>

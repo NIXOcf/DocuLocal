@@ -19,6 +19,8 @@ interface SourceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   source: Source | null
+  /** Texto de la respuesta del asistente, para resaltar las frases más relacionadas. */
+  answer: string
   /** Elemento que recibe el foco al cerrar (el botón de la fuente pulsado). */
   returnFocusRef: RefObject<HTMLElement | null>
 }
@@ -30,7 +32,29 @@ const scoreFormatter = new Intl.NumberFormat("es-ES", {
   maximumFractionDigits: 2,
 })
 
-function SourceDialog({ open, onOpenChange, source, returnFocusRef }: SourceDialogProps) {
+const words = (t: string) =>
+  new Set(
+    t
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .match(/[a-z0-9]{4,}/g) ?? [],
+  )
+
+/** Índices de las (hasta 2) oraciones con más palabras en común con la respuesta. */
+function bestSentences(sentences: string[], answer: string): Set<number> {
+  const ref = words(answer)
+  return new Set(
+    sentences
+      .map((s, i) => ({ i, n: [...words(s)].filter((w) => ref.has(w)).length }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n || a.i - b.i)
+      .slice(0, 2)
+      .map((x) => x.i),
+  )
+}
+
+function SourceDialog({ open, onOpenChange, source, answer, returnFocusRef }: SourceDialogProps) {
   const [result, setResult] = useState<Result | null>(null)
   const sourceId = source?.id ?? null
 
@@ -58,6 +82,8 @@ function SourceDialog({ open, onOpenChange, source, returnFocusRef }: SourceDial
   const current = result !== null && result.id === sourceId ? result : null
   const chunk = current !== null && "chunk" in current ? current.chunk : null
   const error = current !== null && "error" in current ? current.error : null
+  const sentences = chunk?.content.match(/[^.!?\n]+[.!?]*\s*/g) ?? []
+  const best = bestSentences(sentences, answer)
   const page = chunk?.page ?? source?.page ?? null
 
   return (
@@ -92,9 +118,25 @@ function SourceDialog({ open, onOpenChange, source, returnFocusRef }: SourceDial
                 {page !== null && `Página ${page} · `}Relevancia{" "}
                 {scoreFormatter.format(source?.score ?? 0)}
               </p>
-              <blockquote className="max-h-72 overflow-y-auto rounded-sm border-l-4 border-slate-900 bg-slate-50 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
-                {chunk.content}
+              <blockquote className="max-h-72 overflow-y-auto rounded-sm border-l-4 border-slate-900 bg-slate-50 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-500">
+                {sentences.map((s, i) =>
+                  best.has(i) ? (
+                    <mark key={i} className="bg-yellow-200 text-slate-900">
+                      {s}
+                    </mark>
+                  ) : (
+                    <span key={i}>{s}</span>
+                  ),
+                )}
               </blockquote>
+              <details className="mt-3">
+                <summary className={cn("cursor-pointer rounded-sm text-xs font-medium text-slate-700", FOCUS_RING_LIGHT)}>
+                  Ver fragmento completo
+                </summary>
+                <p className="mt-2 max-h-60 overflow-y-auto text-sm whitespace-pre-wrap text-slate-800">
+                  {chunk.content}
+                </p>
+              </details>
             </>
           )}
         </div>
