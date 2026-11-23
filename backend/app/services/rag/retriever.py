@@ -12,7 +12,7 @@ logger = logging.getLogger("doculocal.recuperacion")
 
 PER_LIST_K = 20
 RRF_K = 60
-CANDIDATES = 30
+CANDIDATES = 15  # antes 30: rerank ~lineal en pares; validar recall con scripts/eval_rag.py
 MAX_PER_DOCUMENT = 3
 
 

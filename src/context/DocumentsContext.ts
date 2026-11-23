@@ -22,6 +22,10 @@ export interface DocumentsContextValue {
   reload: () => void
   /** Archivos pendientes de subir (en cola o subiéndose ahora). */
   queued: number
+  /** Porcentaje de subida del archivo en curso (null si no hay subida). */
+  progress: number | null
+  /** Cancela el archivo que se está subiendo. */
+  cancelUpload: () => void
   /** Valida y encola los archivos; se suben de a uno. */
   addFiles: (files: File[], accessLevel: AccessLevel) => AddFilesResult
   removeDocument: (id: string) => Promise<boolean>

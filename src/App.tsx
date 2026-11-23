@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom"
 import AdminView from "@/components/AdminView"
 import AppLayout from "@/components/AppLayout"
 import ChatView from "@/components/ChatView"
@@ -27,7 +27,7 @@ function DataProviders({ children }: { children: ReactNode }) {
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <MemoryRouter>
         <ToastProvider>
           <AuthProvider>
             <DataProviders>
@@ -54,7 +54,7 @@ function App() {
             </DataProviders>
           </AuthProvider>
         </ToastProvider>
-      </BrowserRouter>
+      </MemoryRouter>
     </ErrorBoundary>
   )
 }

@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/useToast"
 import { errorMessage, request } from "@/lib/api"
 import type { Page } from "@/lib/api"
-import type { Conversation, Feedback, Message } from "@/types"
+import type { Conversation, Message } from "@/types"
 
 const MAX_INPUT_LENGTH = 2000
 const TITLE_LENGTH = 60
@@ -104,32 +104,6 @@ function ChatProvider({ children }: { children: ReactNode }) {
     [notify, touchConversation],
   )
 
-  const setFeedback = useCallback(
-    async (conversationId: string, messageId: string, value: Feedback) => {
-      const apply = (feedback: Feedback) =>
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: (prev[conversationId] ?? []).map((m) =>
-            m.id === messageId ? { ...m, feedback } : m,
-          ),
-        }))
-      const previous =
-        messagesByConversation[conversationId]?.find((m) => m.id === messageId)?.feedback ?? null
-      const next = previous === value ? null : value
-      apply(next)
-      try {
-        await request(
-          `/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
-          { method: "PATCH", json: { feedback: next } },
-        )
-      } catch (error) {
-        apply(previous)
-        notify("error", errorMessage(error, "No se pudo guardar la valoración."))
-      }
-    },
-    [messagesByConversation, notify],
-  )
-
   const renameConversation = useCallback(
     async (id: string, title: string) => {
       try {
@@ -171,7 +145,6 @@ function ChatProvider({ children }: { children: ReactNode }) {
       loadMessages,
       pending,
       sendMessage,
-      setFeedback,
       renameConversation,
       deleteConversation,
     }),
@@ -183,7 +156,6 @@ function ChatProvider({ children }: { children: ReactNode }) {
       loadMessages,
       pending,
       sendMessage,
-      setFeedback,
       renameConversation,
       deleteConversation,
     ],

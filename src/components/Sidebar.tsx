@@ -135,7 +135,7 @@ function Sidebar({ id, className, ref, onNavigate, onOpenPrivacy }: SidebarProps
           Historial reciente
         </h2>
 
-        <div className="flex-1 overflow-y-auto px-3 pb-3 pt-1">
+        <div className="relative flex-1 overflow-y-auto px-3 pb-3 pt-1">
           {listStatus === "loading" ? (
             <p role="status" className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-300">
               <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />

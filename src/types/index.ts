@@ -23,14 +23,11 @@ export interface Source {
   snippet: string
 }
 
-export type Feedback = "up" | "down" | null
-
 export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   sources?: Source[]
-  feedback?: Feedback
   /** false = el asistente no encontró información en los documentos autorizados. */
   grounded?: boolean | null
   createdAt: number

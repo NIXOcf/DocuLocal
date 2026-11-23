@@ -76,6 +76,8 @@ function AdminView() {
     setPage,
     reload,
     queued,
+    progress,
+    cancelUpload,
     addFiles,
     removeDocument,
   } = useDocuments()
@@ -133,7 +135,7 @@ function AdminView() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto">
       <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-900">
@@ -239,10 +241,31 @@ function AdminView() {
               {statusMessage}
             </p>
             {queued > 0 && (
-              <p role="status" className="flex items-center gap-2 text-sm text-slate-700">
-                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                Subiendo documentos... {queued} pendiente(s)
-              </p>
+              <div className="space-y-2 text-sm text-slate-700">
+                <p role="status" aria-live="polite" className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  {progress === 100 ? "Procesando en el servidor…" : `Subiendo ${progress ?? 0} %`} ·{" "}
+                  {queued} pendiente(s)
+                </p>
+                <div
+                  role="progressbar"
+                  aria-label="Progreso de subida"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progress ?? 0}
+                  className="h-2 w-full overflow-hidden rounded-sm bg-slate-200"
+                >
+                  <div
+                    className="h-full bg-slate-900 transition-[width] motion-reduce:transition-none"
+                    style={{ width: `${progress ?? 0}%` }}
+                  />
+                </div>
+                {progress !== 100 && (
+                  <Button type="button" variant="outline" onClick={cancelUpload} className={FOCUS_RING_LIGHT}>
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             )}
             {rejected.length > 0 && (
               <div

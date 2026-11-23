@@ -110,6 +110,66 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return (await response.json()) as T
 }
 
+/** POST multipart con progreso de subida (0-100). Cancelable con `signal` (rechaza con AbortError). */
+export function uploadWithProgress<T>(
+  path: string,
+  form: FormData,
+  onProgress: (percent: number) => void,
+  signal?: AbortSignal,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open("POST", `${BASE_URL}${path}`)
+    const stored = loadAuth()
+    if (stored !== null) xhr.setRequestHeader("Authorization", `Bearer ${stored.token}`)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.onerror = () =>
+      reject(new ApiError(0, "sin_conexion", "No se pudo conectar con el servidor. Revisa tu conexión."))
+    xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"))
+    xhr.onload = () => {
+      let body: unknown = null
+      try {
+        body = JSON.parse(xhr.responseText)
+      } catch {
+        // Cuerpo vacío o no JSON: se usa un mensaje genérico.
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body as T)
+      if (xhr.status === 401) {
+        clearAuth()
+        onUnauthorized?.()
+      }
+      const data = isRecord(body) ? body : {}
+      const retryHeader = Number(xhr.getResponseHeader("Retry-After"))
+      const retryAfter = Number.isFinite(retryHeader) && retryHeader > 0 ? retryHeader : null
+      let mensaje =
+        typeof data.mensaje === "string" && data.mensaje !== ""
+          ? data.mensaje
+          : `Error inesperado del servidor (${xhr.status}).`
+      if (xhr.status === 429 && retryAfter !== null) mensaje += ` Reintenta en ${retryAfter} s.`
+      reject(
+        new ApiError(
+          xhr.status,
+          typeof data.error === "string" ? data.error : "error",
+          mensaje,
+          typeof data.ref === "string" ? data.ref : null,
+          isRecord(data.detalle) ? data.detalle : {},
+          retryAfter,
+        ),
+      )
+    }
+    if (signal?.aborted) return reject(new DOMException("Aborted", "AbortError"))
+    const onAbort = () => xhr.abort()
+    signal?.addEventListener("abort", onAbort, { once: true })
+    xhr.onloadend = () => signal?.removeEventListener("abort", onAbort)
+    xhr.timeout = 120_000
+    xhr.ontimeout = () =>
+      reject(new ApiError(0, "timeout", "La subida tardó demasiado. Inténtalo de nuevo."))
+    xhr.send(form)
+  })
+}
+
 export function errorMessage(error: unknown, fallback = "Ocurrió un error inesperado."): string {
   return error instanceof ApiError ? error.message : fallback
 }

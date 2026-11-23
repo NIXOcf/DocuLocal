@@ -1,5 +1,5 @@
 import { createContext } from "react"
-import type { Conversation, Feedback, Message } from "@/types"
+import type { Conversation, Message } from "@/types"
 
 export type ListStatus = "loading" | "ready" | "error"
 
@@ -28,7 +28,6 @@ export interface ChatContextValue {
     rawText: string,
     onCreated?: (id: string) => void,
   ) => Promise<boolean>
-  setFeedback: (conversationId: string, messageId: string, value: Feedback) => Promise<void>
   renameConversation: (id: string, title: string) => Promise<boolean>
   deleteConversation: (id: string) => Promise<boolean>
 }
